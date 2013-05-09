@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+use v5.14;
+use warnings;
+use UAV::Pilot::Sender::ARDrone;
+
+my $HOST        = shift || '192.168.1.1';
+my $PORT        = shift || UAV::Pilot::Sender::ARDrone->ARDRONE_PORT_CTRL;
+my $SOCKET_TYPE = UAV::Pilot::Sender::ARDrone->ARDRONE_PORT_CTRL_TYPE;
+
+# This all should work, but doesn't.  Seems that the current AR drone is bugged.  See:
+#
+# https://projects.ardrone.org/boards/1/topics/show/5216
+# https://projects.ardrone.org/boards/1/topics/show/3453
+#
+local $| = 1; # Autoflush
+
+my $in = IO::Socket::INET->new(
+    Proto     => $SOCKET_TYPE,
+    LocalPort => $PORT,
+    Port      => $PORT,
+) or die "Could not open socket on port $PORT: $!\n";
+print $in "AT*CTRL=0," . UAV::Pilot::Sender::ARDrone->ARDRONE_CTRL_GET_CONFIG . ",0\r";
+
+while( <$in> ) {
+    print;
+}
+
+$in->close;

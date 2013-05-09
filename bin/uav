@@ -1,0 +1,144 @@
+#!/usr/bin/perl
+use v5.14;
+use Term::ReadLine::Perl5;
+use UAV::Pilot;
+use UAV::Pilot::Commands;
+use UAV::Pilot::Sender::ARDrone;
+use UAV::Pilot::Device::ARDrone;
+use Getopt::Long qw( :config no_ignore_case );
+
+my $IP               = '192.168.1.1';
+my $PROMPT           = 'uav> ';
+my $MULTILINE_PROMPT = "\t";
+my @LIB_PATHS        = ();
+my @LIBS             = ();
+GetOptions(
+    'ip=s'        => \$IP,
+    'l|load=s'    => \@LIBS,
+    'L|library=s' => \@LIB_PATHS,
+);
+
+
+sub run_cmd
+{
+    my ($cmd, $repl) = @_;
+    my $return = 1;
+    if( $cmd =~ /\A(?: exit | quit | q ) \s*;\s*\z/x ) {
+        $return = 0;
+    }
+    else {
+        eval {
+            $repl->run_cmd( $cmd );
+        };
+        warn $@ if $@;
+    }
+
+    return $return;
+}
+
+sub load_libraries
+{
+    my ($repl, $lib_paths, $libs) = @_;
+
+    $repl->add_lib_dir( UAV::Pilot->default_module_dir );
+    $repl->add_lib_dir( $_ ) for @$lib_paths;
+
+    print "Library paths:\n" . join( "\n", map { "\t$_" } @{ $repl->lib_dirs } ) . "\n";
+    foreach my $lib (@$libs) {
+        print "Loading library '$lib' . . . ";
+        $repl->load_lib( $lib );
+        print "OK\n";
+    }
+
+    print "\n";
+    return 1;
+}
+
+{
+    my @cmd = ();
+
+    sub add_cmd
+    {
+        my ($cmd) = @_;
+        push @cmd => $cmd;
+        return 1;
+    }
+
+    sub full_cmd
+    {
+        my $cmd = join( ' ', @cmd );
+        @cmd = ();
+        return $cmd;
+    }
+}
+
+
+{
+    my $continue = 1;
+    my $term = Term::ReadLine::Perl5->new( 'uav' );
+
+    my $ardrone = UAV::Pilot::Sender::ARDrone->new({
+        host => $IP,
+    });
+    $ardrone->connect;
+
+    my $repl = UAV::Pilot::Commands->new({
+        device => UAV::Pilot::Device::ARDrone->new({
+            sender => $ardrone,
+        }),
+    });
+    load_libraries( $repl, \@LIB_PATHS, \@LIBS );
+
+    my $cur_prompt = $PROMPT;
+    while( $continue && defined($_ = $term->readline( $cur_prompt )) ) {
+        add_cmd( $_ );
+
+        if( /; \s* \z/x ) {
+            my $cmd = full_cmd;
+            $continue = run_cmd( $cmd, $repl );
+            $cur_prompt = $PROMPT;
+        }
+        else {
+            $cur_prompt = $MULTILINE_PROMPT;
+        }
+    }
+}
+
+__END__
+
+
+=head1 SYNOPSIS
+
+    uav \
+        --ip 192.168.1.1 \
+        -L /path/to/libraries
+        -l ARDrone
+
+=head1 DESCRIPTION
+
+Launches a shell for controlling a UAV.  Perl statements may be typed at the prompt, ending 
+with a semi-colon.  With the Parrot AR.Drone, try:
+
+    uav> takeoff;
+    uav> pitch -0.5;
+    uav> wave;
+    uav> land;
+
+=head1 OPTIONS
+
+=head2 --ip
+
+Host IP to connect to.  Out of the box, the Parrot AR.Drone will be its own wireless 
+access point on IP 192.168.1.1 (which is the default here).
+
+=head2 -L or --library
+
+Path to library modules.  May be specified multiple times.  By default, this will be the
+dist shared dir returned by L<File::ShareDir> for L<UAV::Pilot>.
+
+=head2 -l or --load
+
+Library to load.  May be specified multiple times.  It will need to be under one of the 
+directories specified by the C<--library> option (or the default library path).
+
+=cut
