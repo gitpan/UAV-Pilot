@@ -1,35 +1,55 @@
 #!/usr/bin/perl
 use v5.14;
 use warnings;
-use UAV::Pilot::Sender::ARDrone;
+use UAV::Pilot::Driver::ARDrone;
+use UAV::Pilot::Driver::ARDrone::NavPacket;
+use IO::Socket::Multicast;
+use Getopt::Long ();
 
 
-my $HOST        = shift || '192.168.1.1';
-my $PORT        = UAV::Pilot::Sender::ARDrone->ARDRONE_PORT_NAV_DATA;
-my $SOCKET_TYPE = UAV::Pilot::Sender::ARDrone->ARDRONE_PORT_NAV_DATA_TYPE;
+my $HOST           = '192.168.1.1';
+my $MULTICAST_ADDR = UAV::Pilot::Driver::ARDrone->ARDRONE_MULTICAST_ADDR;
+my $PORT           = UAV::Pilot::Driver::ARDrone->ARDRONE_PORT_NAV_DATA;
+my $SOCKET_TYPE    = UAV::Pilot::Driver::ARDrone->ARDRONE_PORT_NAV_DATA_TYPE;
+my $IFACE          = 'wlan0';
+my $SDL            = 0;
+
+Getopt::Long::GetOptions(
+    'host=s'  => \$HOST,
+    'sdl'     => \$SDL,
+    'iface=s' => \$IFACE,
+);
 
 
-my $sender = UAV::Pilot::Sender::ARDrone->new({
+say "Connectting to $HOST . . . ";
+my $sender = UAV::Pilot::Driver::ARDrone->new({
     host => $HOST,
 });
-my $port = $sender->ARDRONE_PORT_NAV_DATA;
-my $socket = IO::Socket::INET->new(
-    Proto     => $SOCKET_TYPE,
-    PeerPort  => $PORT,
-    PeerAddr  => $HOST,
-    LocalPort => $PORT,
-) or die "Could not open socket: $!\n";
-
 $sender->connect;
-$socket->send('foo');
-say "Sent init packet, waiting for status packet . . . ";
-my $buf = '';
-$socket->read( \$buf, 4096 );
-say "Got status packet: $buf";
 
-$sender->at_config( $sender->ARDRONE_CONFIG_GENERAL_NAVDATA_DEMO, 'TRUE' );
+my $sdl = undef;
+if( $SDL ) {
+    say "Init SDL output . . . ";
+    eval "require UAV::Pilot::Control::ARDrone::SDLNavOutput";
+    die "Could not load SDL output: $@\n" if $@;
 
-say "Ready to receive data from $HOST:$PORT";
-while( my $in = $socket->read( \$buf, 4096 ) ) {
-    say "Got packet: $buf";
+    $sdl = UAV::Pilot::Control::ARDrone::SDLNavOutput->new;
+    say "SDL Output ready";
+}
+
+say "Ready to receive data from $HOST";
+my $continue = 1;
+while( $continue ) {
+    if( $sender->read_nav_packet ) {
+        my $last_nav_packet = $sender->last_nav_packet;
+
+        if( $SDL ) {
+            $last_nav_packet->render_SDL( $sdl );
+        }
+        else {
+            say "Got nav packet: " . $last_nav_packet->to_string;
+        }
+    }
+
+    sleep 1;
 }

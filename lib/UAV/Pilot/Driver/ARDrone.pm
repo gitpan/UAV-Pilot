@@ -1,18 +1,23 @@
-package UAV::Pilot::Sender::ARDrone;
+package UAV::Pilot::Driver::ARDrone;
 use v5.14;
 use Moose;
 use namespace::autoclean;
 use IO::Socket;
+use IO::Socket::Multicast;
 use UAV::Pilot::Exceptions;
 
-with 'UAV::Pilot::Sender';
+with 'UAV::Pilot::Driver';
 
 use constant {
+    TRUE  => 'TRUE',
+    FALSE => 'FALSE',
+
     ARDRONE_CALIBRATION_DEVICE_MAGNETOMETER => 0,
     ARDRONE_CALIBRATION_DEVICE_NUMBER       => 1,
 
     ARDRONE_CTRL_GET_CONFIG => 4,
 
+    ARDRONE_MULTICAST_ADDR          => '224.1.1.1',
     ARDRONE_PORT_COMMAND            => 5556,
     ARDRONE_PORT_COMMAND_TYPE       => 'udp',
     ARDRONE_PORT_NAV_DATA           => 5554,
@@ -25,6 +30,11 @@ use constant {
     ARDRONE_PORT_VIDEO_H264_TYPE    => 'tcp',
     ARDRONE_PORT_CTRL               => 5559,
     ARDRONE_PORT_CTRL_TYPE          => 'tcp',
+
+    ARDRONE_USERBOX_CMD_STOP       => 'USERBOX_CMD_STOP',
+    ARDRONE_USERBOX_CMD_CANCEL     => 'USERBOX_CMD_CANCEL',
+    ARDRONE_USERBOX_CMD_START      => 'USERBOX_CMD_START',
+    ARDRONE_USERBOX_CMD_SCREENSHOT => 'USERBOX_CMD_SCREENSHOT',
 
     ARDRONE_CONFIG_GENERAL_NUM_VERSION_CONFIG => 'general:num_version_config',
     ARDRONE_CONFIG_GENERAL_NUM_VERSION_MB     => 'general:num_version_mb',
@@ -166,6 +176,28 @@ use constant {
     ARDRONE_CONFIG_CONTROL_FLIGHT_ANIM_FLIP_BEHIND_MAYDAY             => 15,
     ARDRONE_CONFIG_CONTROL_FLIGHT_ANIM_FLIP_LEFT_MAYDAY               => 15,
     ARDRONE_CONFIG_CONTROL_FLIGHT_ANIM_FLIP_RIGHT_MAYDAY              => 15,
+
+    ARDRONE_CONFIG_LED_ANIMATION_BLINK_GREEN_RED              => 0,
+    ARDRONE_CONFIG_LED_ANIMATION_BLINK_GREEN                  => 1,
+    ARDRONE_CONFIG_LED_ANIMATION_BLINK_RED                    => 2,
+    ARDRONE_CONFIG_LED_ANIMATION_BLINK_ORANGE                 => 3,
+    ARDRONE_CONFIG_LED_ANIMATION_SNAKE_GREEN_RED              => 4,
+    ARDRONE_CONFIG_LED_ANIMATION_FIRE                         => 5,
+    ARDRONE_CONFIG_LED_ANIMATION_STANDARD                     => 6,
+    ARDRONE_CONFIG_LED_ANIMATION_RED                          => 7,
+    ARDRONE_CONFIG_LED_ANIMATION_GREEN                        => 8,
+    ARDRONE_CONFIG_LED_ANIMATION_RED_SNAKE                    => 9,
+    ARDRONE_CONFIG_LED_ANIMATION_BLANK                        => 10,
+    ARDRONE_CONFIG_LED_ANIMATION_RIGHT_MISSILE                => 11,
+    ARDRONE_CONFIG_LED_ANIMATION_LEFT_MISSILE                 => 12,
+    ARDRONE_CONFIG_LED_ANIMATION_DOUBLE_MISSILE               => 13,
+    ARDRONE_CONFIG_LED_ANIMATION_FRONT_LEFT_GREEN_OTHERS_RED  => 14,
+    ARDRONE_CONFIG_LED_ANIMATION_FRONT_RIGHT_GREEN_OTHERS_RED => 15,
+    ARDRONE_CONFIG_LED_ANIMATION_REAR_RIGHT_GREEN_OTHERS_RED  => 16,
+    ARDRONE_CONFIG_LED_ANIMATION_REAR_LEFT_GREEN_OTHERS_RED   => 17,
+    ARDRONE_CONFIG_LED_ANIMATION_LEFT_GREEN_RIGHT_RED         => 18,
+    ARDRONE_CONFIG_LED_ANIMATION_LEFT_RED_RIGHT_GREEN         => 19,
+    ARDRONE_CONFIG_LED_ANIMATION_BLINK_STANDARD               => 20,
 };
 
 
@@ -179,6 +211,11 @@ has 'host' => (
     is  => 'rw',
     isa => 'Str',
 );
+has 'iface' => (
+    is      => 'ro',
+    isa     => 'Str',
+    default => 'wlan0',
+);
 
 has 'seq' => (
     is      => 'ro',
@@ -189,6 +226,15 @@ has 'seq' => (
 
 has '_socket' => (
     is => 'rw',
+);
+has '_nav_socket' => (
+    is  => 'rw',
+    isa => 'IO::Socket',
+);
+has 'last_nav_packet' => (
+    is     => 'ro',
+    isa    => 'Maybe[UAV::Pilot::Driver::ARDrone::NavPacket]',
+    writer => '_set_last_nav_packet',
 );
 
 
@@ -204,6 +250,7 @@ sub connect
     );
     $self->_socket( $socket );
 
+    $self->_init_nav_data;
     $self->_init_drone;
     return 1;
 }
@@ -264,10 +311,10 @@ sub at_pcmd
         . join( ',', 
             $self->_next_seq,
             $cmd_number,
-            $self->_float_convert( $roll ),
-            $self->_float_convert( $pitch ),
-            $self->_float_convert( $vert_speed ),
-            $self->_float_convert( $yaw ),
+            $self->float_convert( $roll ),
+            $self->float_convert( $pitch ),
+            $self->float_convert( $vert_speed ),
+            $self->float_convert( $yaw ),
         )
         . "\r";
     $self->_send_cmd( $cmd );
@@ -319,12 +366,12 @@ sub at_pcmd_mag
         . join( ',', 
             $self->_next_seq,
             $cmd_number,
-            $self->_float_convert( $roll ),
-            $self->_float_convert( $pitch ),
-            $self->_float_convert( $vert_speed ),
-            $self->_float_convert( $angular_speed ),
-            $self->_float_convert( $magneto  ),
-            $self->_float_convert( $magneto_accuracy ),
+            $self->float_convert( $roll ),
+            $self->float_convert( $pitch ),
+            $self->float_convert( $vert_speed ),
+            $self->float_convert( $angular_speed ),
+            $self->float_convert( $magneto  ),
+            $self->float_convert( $magneto_accuracy ),
         )
         . "\r";
     $self->_send_cmd( $cmd );
@@ -401,6 +448,36 @@ sub at_ctrl
     return 1;
 }
 
+# Takes an IEEE-754 float and converts its exact bits in memory to a signed 32-bit integer.
+# Yes, the ARDrone dev docs actually say to put floats across the wire in this format.
+sub float_convert
+{
+    my ($self, $float) = @_;
+    my $int = unpack( "l", pack( "f", $float ) );
+    return $int;
+}
+
+sub read_nav_packet
+{
+    my ($self) = @_;
+
+    my $ret = 1;
+    my $buf = '';
+    my $in = $self->_nav_socket->recv( $buf, 4096 );
+
+    if( $in ) {
+        my $nav_packet = UAV::Pilot::Driver::ARDrone::NavPacket->new({
+            packet => $buf,
+        });
+        $self->_set_last_nav_packet( $nav_packet );
+    }
+    else {
+        $ret = 0;
+    }
+
+    return $ret;
+}
+
 
 sub _send_cmd
 {
@@ -424,14 +501,48 @@ sub _init_drone
     return 1;
 }
 
-# Takes an IEEE-754 float and converts its exact bits in memory to a signed 32-bit integer.
-# Yes, the ARDrone dev docs actually say to put floats across the wire in this format.
-sub _float_convert
+sub _init_nav_data
 {
-    my ($self, $float) = @_;
-    my $int = unpack( "l", pack( "f", $float ) );
-    return $int;
+    my ($self) = @_;
+    my $host = $self->host;
+    my $multicast_addr = $self->ARDRONE_MULTICAST_ADDR;
+    my $port           = $self->ARDRONE_PORT_NAV_DATA;
+    my $socket_type    = $self->ARDRONE_PORT_NAV_DATA_TYPE;
+    my $iface          = $self->iface;
+
+    # Init navigation data socket with the UAV
+    my $nav_sock = IO::Socket::Multicast->new(
+        Proto     => $socket_type,
+        PeerPort  => $port,
+        PeerAddr  => $host,
+        LocalAddr => $multicast_addr,
+        LocalPort => $port,
+        ReuseAddr => 1,
+    ) or die "Could not open socket: $!\n";
+    $nav_sock->mcast_add( $multicast_addr, $iface )
+        or die "Could not subscribe to '$multicast_addr': $!\n";
+    $nav_sock->send( 'foo' );
+
+    # Set UAV to demo nav data mode, which sends most of the data we care about
+    $self->at_config(
+        $self->ARDRONE_CONFIG_GENERAL_NAVDATA_DEMO,
+        $self->TRUE,
+    );
+
+    # Receive first status packet from UAV
+    my $buf = '';
+    my $in = $nav_sock->recv( $buf, 1024 );
+
+    if(! defined $nav_sock->blocking( 0 ) ) {
+        UAV::Pilot::IOException->throw({
+            error => "Could not set nav socket to non-blocking IO: $!",
+        });
+    }
+
+    $self->_nav_socket( $nav_sock );
+    return 1;
 }
+
 
 no Moose;
 __PACKAGE__->meta->make_immutable;
@@ -441,11 +552,11 @@ __END__
 
 =head1 NAME
 
-  UAV::Pilot::Sender::ARDrone
+  UAV::Pilot::Driver::ARDrone
 
 =head1 SYNOPSIS
 
-    my $sender = UAV::Pilot::Sender::ARDrone->new({
+    my $sender = UAV::Pilot::Driver::ARDrone->new({
         host => '192.168.1.1',
     });
     $sender->connect;
@@ -457,7 +568,7 @@ __END__
 =head1 DESCRIPTION
 
 Low-level interface for controlling the Parrot AR.Drone.  If you want to write an external 
-program or library controlling this UAV, look at L<UAV::Pilot::Device::ARDrone> instead.
+program or library controlling this UAV, look at L<UAV::Pilot::Control::ARDrone> instead.
 
 =head1 ATTRIBUTES
 
@@ -543,6 +654,25 @@ Reset the communication watchdog.
 =head2 at_ctrl
 
 A useful but rather under-documented command for initing things like navigation data.
+
+=head2 float_convert
+
+    float_convert( 2.0 )
+
+Takes a 32-bit, single-precision floating point number.  The binary form is then 
+directly converted into an integer.  For example, 0.5 converts into 1056964608.
+
+The protocol requires floating point numbers to be transferred this way in some cases.  
+The API will take care of most of these cases for you, but there are some configuration 
+settings that you'll have to convert yourself (like LED animations).
+
+=head2 read_nav_packet
+
+Fetch and parse the latest nav packet off the nav socket.  Returns true if there was a new 
+nav packet to read, false otherwise.  You can get the last available nav packet by calling 
+C<last_nav_packet()>.
+
+This is a non-blocking IO operation.
 
 =head1 CONSTANTS
 

@@ -32,6 +32,21 @@ extends 'UAV::Pilot::Exception';
 
 no Moose;
 __PACKAGE__->meta->make_immutable;
+
+
+package UAV::Pilot::NavPacketException::BadHeader;
+use v5.14;
+use Moose;
+use namespace::autoclean;
+extends 'UAV::Pilot::Exception';
+
+has 'got_header' => (
+    is  => 'ro',
+    isa => 'Int',
+);
+
+no Moose;
+__PACKAGE__->meta->make_immutable;
 1;
 __END__
 
@@ -50,5 +65,7 @@ C<UAV::Pilot::Exception>, which does the role C<Throwable>.
 =head2 UAV::Pilot::NumberOutOfRangeException
 
 =head2 UAV::Pilot::IOException
+
+=head2 UAV::Pilot::NavPacketException::BadHeader
 
 =cut

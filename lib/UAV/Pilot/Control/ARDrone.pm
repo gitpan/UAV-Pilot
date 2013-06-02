@@ -1,9 +1,9 @@
-package UAV::Pilot::Device::ARDrone;
+package UAV::Pilot::Control::ARDrone;
 use v5.14;
 use Moose;
 use namespace::autoclean;
 
-with 'UAV::Pilot::Device';
+with 'UAV::Pilot::Control';
 
 
 sub takeoff
@@ -57,7 +57,7 @@ sub emergency
 }
 
 {
-    my $send = 'UAV::Pilot::Sender::ARDrone';
+    my $send = 'UAV::Pilot::Driver::ARDrone';
     my @FLIGHT_ANIMS = (
         {
             name   => 'phi_m30',
@@ -159,7 +159,6 @@ sub emergency
             anim   => $send->ARDRONE_CONFIG_CONTROL_FLIGHT_ANIM_FLIP_RIGHT,
             mayday => $send->ARDRONE_CONFIG_CONTROL_FLIGHT_ANIM_FLIP_RIGHT_MAYDAY,
         },
-
     );
     foreach my $def (@FLIGHT_ANIMS) {
         my $name   = $def->{name};
@@ -177,6 +176,114 @@ sub emergency
     }
 }
 
+{
+    my $send = 'UAV::Pilot::Driver::ARDrone';
+
+    my @LED_ANIMS = (
+        {
+            name => 'led_blink_green_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_BLINK_GREEN_RED,
+        },
+        {
+            name => 'led_blink_green',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_BLINK_GREEN,
+        },
+        {
+            name => 'led_blink_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_BLINK_RED,
+        },
+        {
+            name => 'led_blink_orange',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_BLINK_ORANGE,
+        },
+        {
+            name => 'led_snake_green_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_SNAKE_GREEN_RED,
+        },
+        {
+            name => 'led_fire',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_FIRE,
+        },
+        {
+            name => 'led_standard',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_STANDARD,
+        },
+        {
+            name => 'led_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_RED,
+        },
+        {
+            name => 'led_green',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_GREEN,
+        },
+        {
+            name => 'led_red_snake',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_RED_SNAKE,
+        },
+        {
+            name => 'led_blank',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_BLANK,
+        },
+        {
+            name => 'led_right_missile',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_RIGHT_MISSILE,
+        },
+        {
+            name => 'led_left_missile',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_LEFT_MISSILE,
+        },
+        {
+            name => 'led_double_missile',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_DOUBLE_MISSILE,
+        },
+        {
+            name => 'led_front_left_green_others_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_FRONT_LEFT_GREEN_OTHERS_RED,
+        },
+        {
+            name => 'led_front_right_green_others_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_FRONT_RIGHT_GREEN_OTHERS_RED,
+        },
+        {
+            name => 'led_rear_left_green_others_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_REAR_LEFT_GREEN_OTHERS_RED,
+        },
+        {
+            name => 'led_rear_right_green_others_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_REAR_RIGHT_GREEN_OTHERS_RED,
+        },
+        {
+            name => 'led_left_green_right_red',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_LEFT_GREEN_RIGHT_RED,
+        },
+        {
+            name => 'led_left_red_right_green',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_LEFT_RED_RIGHT_GREEN,
+        },
+        {
+            name => 'led_blink_standard',
+            anim => $send->ARDRONE_CONFIG_LED_ANIMATION_BLINK_STANDARD,
+        },
+    );
+    foreach my $def (@LED_ANIMS) {
+        my $name = $def->{name};
+        my $anim = $def->{anim};
+
+        no strict 'refs';
+        *$name = sub {
+            my ($self, $freq, $duration) = @_;
+            $self->sender->at_config(
+                $self->sender->ARDRONE_CONFIG_LEDS_LEDS_ANIM,
+                sprintf( '%d,%d,%d',
+                    $anim,
+                    $self->sender->float_convert( $freq ),
+                    $duration,
+                ),
+            );
+        };
+    }
+}
+
 
 no Moose;
 __PACKAGE__->meta->make_immutable;
@@ -186,13 +293,13 @@ __END__
 
 =head1 NAME
 
-  UAV::Pilot::Device::ARDrone
+  UAV::Pilot::Control::ARDrone
 
 =head1 SYNOPSIS
 
-    my $sender = UAV::Pilot::Sender::ARDrone->new( ... );
+    my $sender = UAV::Pilot::Driver::ARDrone->new( ... );
     $sender->connect;
-    my $dev = UAV::Pilot::Device::ARDrone->new({
+    my $dev = UAV::Pilot::Control::ARDrone->new({
         sender => $sender,
     });
     
@@ -204,7 +311,7 @@ __END__
 
 =head1 DESCRIPTION
 
-L<UAV::Pilot::Device> implementation for the Parrot AR.Drone.
+L<UAV::Pilot::Control> implementation for the Parrot AR.Drone.
 
 =head1 METHODS
 
@@ -284,5 +391,33 @@ I find "wave" and "flip_behind" are particularly good ways to impress house gues
     flip_behind
     flip_left
     flip_right
+
+=head1 LED ANIMATION METHODS
+
+The LEDs on the Parrot AR.Drone can be directly controlled using these animation methods.  
+They all take two parameters: the frequency (in Hz) as a floating point number, and 
+the duration.
+
+    led_blink_green_red
+    led_blink_green
+    led_blink_red
+    led_blink_orange
+    led_snake_green_red
+    led_fire
+    led_standard
+    led_red
+    led_green
+    led_red_snake
+    led_blank
+    led_right_missile
+    led_left_missile
+    led_double_missile
+    led_front_left_green_others_red
+    led_front_right_green_others_red
+    led_rear_right_green_others_red
+    led_rear_left_green_others_red
+    led_left_green_right_red
+    led_left_red_right_green
+    led_blink_standard
 
 =cut

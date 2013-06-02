@@ -1,19 +1,19 @@
-use Test::More tests => 31;
+use Test::More tests => 52;
 use v5.14;
 use UAV::Pilot;
-use UAV::Pilot::Sender::ARDrone::Mock;
-use UAV::Pilot::Device::ARDrone;
+use UAV::Pilot::Driver::ARDrone::Mock;
+use UAV::Pilot::Control::ARDrone;
 use UAV::Pilot::Commands;
 
 my $LIB_DIR = 'uav_mods';
 
 
-my $ardrone = UAV::Pilot::Sender::ARDrone::Mock->new({
+my $ardrone = UAV::Pilot::Driver::ARDrone::Mock->new({
     host => 'localhost',
 });
 $ardrone->connect;
 my $repl = UAV::Pilot::Commands->new({
-    device => UAV::Pilot::Device::ARDrone->new({
+    device => UAV::Pilot::Control::ARDrone->new({
         sender => $ardrone,
     }),
 });
@@ -33,7 +33,7 @@ UAV::Pilot::Commands::run_cmd( 'takeoff;' );
 cmp_ok( scalar($ardrone->saved_commands), '==', 0,
     'run_cmd does nothing when called without $self' );
 
-my $seq = 1; # One command already sent by $ardrone->connect()
+my $seq = 2; # Commands already sent by $ardrone->connect()
 my @TESTS = (
     {
         cmd    => 'takeoff;',
@@ -175,6 +175,112 @@ my @TESTS = (
         expect => [ "AT*REF=~SEQ~,290717952\r" ],
         name   => "Emergency command",
     },
+    {
+        cmd    => 'led_blink_green_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","0,1073741824,2"\r} ],
+        name   => "led_blink_green_red command",
+    },
+    {
+        cmd    => 'led_blink_green 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","1,1073741824,2"\r} ],
+        name   => "led_blink_green command",
+    },
+    {
+        cmd    => 'led_blink_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","2,1073741824,2"\r} ],
+        name   => "led_blink_red command",
+    },
+    {
+        cmd    => 'led_blink_orange 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","3,1073741824,2"\r} ],
+        name   => "led_blink_orange command",
+    },
+    {
+        cmd    => 'led_snake_green_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","4,1073741824,2"\r} ],
+        name   => "led_snake_green_red command",
+    },
+    {
+        cmd    => 'led_fire 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","5,1073741824,2"\r} ],
+        name   => "led_fire command",
+    },
+    {
+        cmd    => 'led_standard 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","6,1073741824,2"\r} ],
+        name   => "led_standard command",
+    },
+    {
+        cmd    => 'led_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","7,1073741824,2"\r} ],
+        name   => "led_red command",
+    },
+    {
+        cmd    => 'led_green 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","8,1073741824,2"\r} ],
+        name   => "led_green command",
+    },
+    {
+        cmd    => 'led_red_snake 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","9,1073741824,2"\r} ],
+        name   => "led_red_snake command",
+    },
+    {
+        cmd    => 'led_blank 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","10,1073741824,2"\r} ],
+        name   => "led_blank command",
+    },
+    {
+        cmd    => 'led_right_missile 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","11,1073741824,2"\r} ],
+        name   => "led_right_missile command",
+    },
+    {
+        cmd    => 'led_left_missile 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","12,1073741824,2"\r} ],
+        name   => "led_left_missile command",
+    },
+    {
+        cmd    => 'led_double_missile 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","13,1073741824,2"\r} ],
+        name   => "led_double_missile command",
+    },
+    {
+        cmd    => 'led_front_left_green_others_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","14,1073741824,2"\r} ],
+        name   => "led_front_left_green_others_red command",
+    },
+    {
+        cmd    => 'led_front_right_green_others_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","15,1073741824,2"\r} ],
+        name   => "led_front_right_green_others_red command",
+    },
+    {
+        cmd    => 'led_rear_right_green_others_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","16,1073741824,2"\r} ],
+        name   => "led_rear_right_green_others_red command",
+    },
+    {
+        cmd    => 'led_rear_left_green_others_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","17,1073741824,2"\r} ],
+        name   => "led_rear_left_green_others_red command",
+    },
+    {
+        cmd    => 'led_left_green_right_red 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","18,1073741824,2"\r} ],
+        name   => "led_left_green_right_red command",
+    },
+    {
+        cmd    => 'led_left_red_right_green 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","19,1073741824,2"\r} ],
+        name   => "led_left_red_right_green command",
+    },
+    {
+        cmd    => 'led_blink_standard 2.0, 2;',
+        expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","20,1073741824,2"\r} ],
+        name   => "led_blink_standard command",
+    },
+
 );
 foreach my $test (@TESTS) {
     $seq++;

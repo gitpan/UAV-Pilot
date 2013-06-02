@@ -1,30 +1,33 @@
-use Test::More tests => 33;
+use Test::More tests => 40;
 use v5.14;
 use UAV::Pilot;
 use UAV::Pilot::Exceptions;
-use UAV::Pilot::Sender;
-use UAV::Pilot::Sender::ARDrone;
-use UAV::Pilot::Sender::ARDrone::Mock;
+use UAV::Pilot::Driver;
+use UAV::Pilot::Driver::ARDrone;
+use UAV::Pilot::Driver::ARDrone::Mock;
 use Test::Moose;
 
-my $ardrone_mock = UAV::Pilot::Sender::ARDrone::Mock->new({
+my $ardrone_mock = UAV::Pilot::Driver::ARDrone::Mock->new({
     host => 'localhost',
     port => 7776,
 });
 ok( $ardrone_mock, "Created object" );
-isa_ok( $ardrone_mock => 'UAV::Pilot::Sender::ARDrone::Mock' );
-does_ok( $ardrone_mock => 'UAV::Pilot::Sender' );
+isa_ok( $ardrone_mock => 'UAV::Pilot::Driver::ARDrone::Mock' );
+does_ok( $ardrone_mock => 'UAV::Pilot::Driver' );
 cmp_ok( $ardrone_mock->port, '==', 7776, "Port set" );
 
 ok( $ardrone_mock->connect, "Connect to ARDrone" );
 
 
-my $seq = 1;
+my $seq = 2;
 my @saved_cmds = $ardrone_mock->saved_commands;
 is_deeply(
     \@saved_cmds,
-    [ "AT*FTRIM=$seq,\r" ],
-    "Connect to drone and set Flat Trim",
+    [
+        qq{AT*CONFIG=1,"general:navdata_demo","TRUE"\r},
+        "AT*FTRIM=2,\r",
+    ],
+    "Connect to drone and set Flat Trim, navdata demo config",
 );
 
 
@@ -114,7 +117,7 @@ if( $@ && $@->isa( 'UAV::Pilot::NumberOutOfRangeException' ) ) {
         "Sequence was not incrmented for Out of Range error" );
 }
 
-my $ardrone_port_check = UAV::Pilot::Sender::ARDrone::Mock->new({
+my $ardrone_port_check = UAV::Pilot::Driver::ARDrone::Mock->new({
     host => 'localhost',
 });
 cmp_ok( $ardrone_port_check->port, '==', 5556, "Correct default port" );
@@ -125,7 +128,7 @@ $ardrone_mock->at_ref( 1, 0 );
 my @last_commands = $ardrone_mock->saved_commands;
 is_deeply( 
     \@last_commands,
-    [ "AT*REF=12,290718208\r", "AT*REF=13,290718208\r" ],
+    [ "AT*REF=13,290718208\r", "AT*REF=14,290718208\r" ],
     "Gathered previously saved commands",
 );
 cmp_ok( scalar($ardrone_mock->saved_commands), '==', 0, "No more saved commands" );
@@ -144,3 +147,31 @@ cmp_ok( $ardrone_mock->ARDRONE_PORT_VIDEO_P264_V1, '==', 5555, "Video P264 v1" )
 cmp_ok( $ardrone_mock->ARDRONE_PORT_VIDEO_P264_V2, '==', 5555, "Video P264 v2" );
 cmp_ok( $ardrone_mock->ARDRONE_PORT_VIDEO_P264_V1_TYPE, 'eq', 'udp', "Video P264 v1 type" );
 cmp_ok( $ardrone_mock->ARDRONE_PORT_VIDEO_P264_V2_TYPE, 'eq', 'tcp', "Video P264 v2 type" );
+
+
+my $last_nav_packet = $ardrone_mock->last_nav_packet;
+ok(! $last_nav_packet, "No nav packet yet" );
+
+$ardrone_mock->read_nav_packet(
+    # These are in little-endian order
+    '88776655',   # Header
+    'd004800f',   # Drone state
+    '336f0000',   # Sequence number
+    '01000000',   # Vision flag
+    # No options on this packet besides checksum
+    'ffff',       # Checksum ID
+    '0800',       # Checksum size
+    'c1030000',   # Checksum data
+);
+$last_nav_packet = $ardrone_mock->last_nav_packet;
+isa_ok( $last_nav_packet => 'UAV::Pilot::Driver::ARDrone::NavPacket' );
+cmp_ok( $last_nav_packet->header, '==', 0x55667788, "Header (magic number) parsed" );
+
+cmp_ok( $ardrone_mock->ARDRONE_USERBOX_CMD_STOP, 'eq', 'USERBOX_CMD_STOP',
+    "Userbox stop config command" );
+cmp_ok( $ardrone_mock->ARDRONE_USERBOX_CMD_CANCEL, 'eq', 'USERBOX_CMD_CANCEL',
+    "Userbox cancel config command" );
+cmp_ok( $ardrone_mock->ARDRONE_USERBOX_CMD_START, 'eq', 'USERBOX_CMD_START',
+    "Userbox start config command" );
+cmp_ok( $ardrone_mock->ARDRONE_USERBOX_CMD_SCREENSHOT, 'eq', 'USERBOX_CMD_SCREENSHOT',
+    "userbox screenshot config command" );
