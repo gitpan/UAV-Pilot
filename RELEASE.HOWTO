@@ -5,4 +5,4 @@ perl ./Build.PL
 ./Build disttest
 ./Build dist
 
-Then upload the generated tarball to pause.cpan.org
+Then upload the generated tarball to pause.perl.org

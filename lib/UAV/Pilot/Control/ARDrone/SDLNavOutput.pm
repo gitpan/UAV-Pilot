@@ -11,6 +11,7 @@ use SDL::Event;
 use SDL::Events;
 use SDL::Video qw{ :surface :video };
 use UAV::Pilot;
+use UAV::Pilot::Driver::ARDrone::NavPacket;
 
 use constant {
     SDL_TITLE  => 'Nav Output',
@@ -156,9 +157,15 @@ use constant {
 };
 
 
+with 'UAV::Pilot::SDL::EventHandler';
+
 has 'sdl' => (
     is  => 'ro',
     isa => 'SDLx::App',
+);
+has 'driver' => (
+    is  => 'ro',
+    isa => 'UAV::Pilot::Driver',
 );
 has '_bg_color' => (
     is  => 'ro',
@@ -192,7 +199,10 @@ sub BUILDARGS
         flags  => $class->SDL_FLAGS,
     );
     $sdl->add_event_handler( sub {
-        return 0 if $_[0]->type == SDL_QUIT;
+        my ($event, $app) = @_;
+        if( $event->type == SDL_QUIT ) {
+            $app->stop;
+        }
         return 1;
     });
 
@@ -251,6 +261,17 @@ sub render
         $self->BATTERY_DISPLAY_X, 100 );
 
     SDL::Video::update_rects( $self->sdl, $self->_bg_rect );
+    return 1;
+}
+
+sub process_events
+{
+    my ($self) = @_;
+    my $driver = $self->driver;
+    if( $driver->read_nav_packet ) {
+        my $nav_packet = $driver->last_nav_packet;
+        $self->render( $nav_packet );
+    }
     return 1;
 }
 
@@ -377,19 +398,34 @@ __END__
 
 =head1 SYNOPSIS
 
-  my $nav_packet = UAV::Pilot::Driver::ARDrone::NavPacket->new( ... );
-  my $sdl = UAV::Pilot::Control::ARDrone::SDLNavOutput->new;
-  $sdl->render( $nav_packet );
+  my $condvar = AnyEvent->condvar;
+  my $sdl_events = UAV::Pilot::SDL::Events->new({
+      condvar => $condvar,
+  });
+  
+  my $sdl_nav = UAV::Pilot::Control::ARDrone::SDLNavOutput->new({
+      driver => UAV::Pilot::Driver::ARDrone->new( ... ),
+  });
+  $sdl_events->register( $sdl_nav );
 
 =head1 DESCRIPTION
 
 Graphically renders a C<UAV::Pilot::Driver::ARDrone::NavPacket> using SDL.
 
+It does the C<UAV::Pilot::SDL::EventHandler> role, and thus can be processed by 
+C<UAV::Pilot::SDL::Events>.  This is recommended, as C<UAV::Pilot::SDL::Events> will 
+take care of the C<SDL_QUIT> events.  Without that, there's no way to stop the process 
+other than C<kill -9>.
+
 =head1 METHODS
 
 =head2 new
 
-Constructor
+  new({
+      driver => UAV::Pilot::Driver::ARDrone->new( ... ),
+  })
+
+Constructor.  The param C<driver> takes a C<UAV::Pilot::Driver::ARDrone> object.
 
 =head2 render
 

@@ -1,0 +1,84 @@
+#!/usr/bin/perl
+use v5.14;
+use warnings;
+use AnyEvent;
+use UAV::Pilot;
+use UAV::Pilot::Commands;
+use UAV::Pilot::Driver::ARDrone;
+use UAV::Pilot::Driver::ARDrone::NavPacket;
+use UAV::Pilot::Control::ARDrone::Event;
+use UAV::Pilot::SDL::Events;
+use UAV::Pilot::SDL::Joystick;
+use Getopt::Long ();
+
+use constant NAV_UPDATE_INTERVAL => 1 / 30;
+
+
+my $IP       = '192.168.1.1';
+my $SHOW_NAV = 0;
+Getopt::Long::GetOptions(
+    'host=s'   => \$IP,
+    'show-nav' => \$SHOW_NAV,
+);
+
+
+sub show_nav
+{
+    my ($driver, $cv, $sdl_events) = @_;
+    eval "use UAV::Pilot::Control::ARDrone::SDLNavOutput";
+    die $@ if $@;
+
+    my $sdl_nav = UAV::Pilot::Control::ARDrone::SDLNavOutput->new({
+        condvar => $cv,
+        driver  => $driver,
+    });
+    $sdl_events->register( $sdl_nav );
+
+    return 1;
+}
+
+
+{
+    my $ardrone = UAV::Pilot::Driver::ARDrone->new({
+        host => $IP,
+    });
+    $ardrone->connect;
+
+    my $dev = UAV::Pilot::Control::ARDrone::Event->new({
+        sender => $ardrone,
+    });
+
+    my $cv = $dev->init_event_loop;
+    my $sdl_events = UAV::Pilot::SDL::Events->new({
+        condvar => $cv,
+    });
+
+    my $joystick = UAV::Pilot::SDL::Joystick->new({
+        condvar    => $cv,
+        controller => $dev,
+    });
+    $sdl_events->register( $joystick );
+
+    show_nav( $ardrone, $cv, $sdl_events ) if $SHOW_NAV;
+    $sdl_events->start_event_loop;
+    say "Ready to fly";
+    $cv->recv;
+    $joystick->close;
+}
+
+
+=head1 SYNOPSIS
+
+    uav_joystick --show-nav
+
+=head1 DESCRIPTION
+
+Controls a Parrot AR.Drone with an SDL-compatible joystick.
+
+C<--show-nav> displays the navigation output in an SDL window.  Closing the window will end 
+the program.
+
+The joystick parameters can be configured in a config file.  See C<UAV::Pilot::SDL::Joystick>
+for details.
+
+=cut

@@ -56,6 +56,19 @@ sub emergency
     return 1;
 }
 
+sub reset_watchdog
+{
+    my ($self) = @_;
+    $self->sender->at_comwdg();
+    return 1;
+}
+
+sub hover
+{
+    my ($self) = @_;
+    return 1;
+}
+
 {
     my $send = 'UAV::Pilot::Driver::ARDrone';
     my @FLIGHT_ANIMS = (
@@ -361,6 +374,18 @@ around (yaw movement) while it does this.
 Toggles the emergency state.  If your UAV goes out of control, call this to immediately 
 shut it off.  When in the emergency state, it will not be responsive to further commands.  
 Call this again to bring it out of this state.
+
+=head2 reset_watchdog
+
+Sends a command to reset the watchdog process.  You need to send some command at least 
+every 2 seconds, or else the AR.Drone thinks the connection was lost.  If you don't have 
+anything else to send, send this one.
+
+If you run C<start_event_loop()>, the reset will happen for you.
+
+=head2 hover
+
+Stops the UAV and hovers in place.
 
 =head1 FLIGHT ANIMATION METHODS
 

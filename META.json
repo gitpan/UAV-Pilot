@@ -21,18 +21,23 @@
       },
       "runtime" : {
          "recommends" : {
+            "Getopt::Long" : "0",
             "SDL" : "2.5"
          },
          "requires" : {
+            "AnyEvent" : "0",
+            "AnyEvent::ReadLine::Gnu" : "0",
+            "File::HomeDir" : "0",
             "File::ShareDir" : "1.00",
             "File::Spec" : "0",
             "IO::Socket::Multicast" : "0",
             "Math::Trig" : "0",
             "Moose" : "0",
             "MooseX::Event" : "0",
-            "Term::ReadLine::Perl5" : "0",
             "Test::More" : "0",
             "Throwable" : "0",
+            "YAML" : "0",
+            "namespace::autoclean" : "0",
             "perl" : "v5.12.0"
          }
       }
@@ -52,6 +57,10 @@
       },
       "UAV::Pilot::Control::ARDrone" : {
          "file" : "lib/UAV/Pilot/Control/ARDrone.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::Control::ARDrone::Event" : {
+         "file" : "lib/UAV/Pilot/Control/ARDrone/Event.pm",
          "version" : 0
       },
       "UAV::Pilot::Control::ARDrone::SDLNavOutput" : {
@@ -74,6 +83,10 @@
          "file" : "lib/UAV/Pilot/Driver/ARDrone/NavPacket.pm",
          "version" : 0
       },
+      "UAV::Pilot::EasyEvent" : {
+         "file" : "lib/UAV/Pilot/EasyEvent.pm",
+         "version" : 0
+      },
       "UAV::Pilot::Exception" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm",
          "version" : 0
@@ -89,6 +102,18 @@
       "UAV::Pilot::NumberOutOfRangeException" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm",
          "version" : 0
+      },
+      "UAV::Pilot::SDL::EventHandler" : {
+         "file" : "lib/UAV/Pilot/SDL/EventHandler.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::SDL::Events" : {
+         "file" : "lib/UAV/Pilot/SDL/Events.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::SDL::Joystick" : {
+         "file" : "lib/UAV/Pilot/SDL/Joystick.pm",
+         "version" : 0
       }
    },
    "release_status" : "stable",
@@ -97,5 +122,5 @@
          "http://opensource.org/licenses/bsd-license.php"
       ]
    },
-   "version" : "0.2"
+   "version" : "0.3"
 }

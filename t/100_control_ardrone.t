@@ -1,4 +1,4 @@
-use Test::More tests => 51;
+use Test::More tests => 53;
 use v5.14;
 use UAV::Pilot::Driver::ARDrone::Mock;
 use UAV::Pilot::Control::ARDrone;
@@ -311,6 +311,18 @@ my @TESTS = (
         args   => [ 2.0, 2 ],
         expect => [ qq{AT*CONFIG=~SEQ~,"leds:leds_anim","20,1073741824,2"\r} ],
         name   => "led_blink_standard method executed",
+    },
+    {
+        method => 'reset_watchdog',
+        args   => [ ],
+        expect => [ qq{AT*COMWDG=~SEQ~\r} ],
+        name   => "reset_watchdog method executed",
+    },
+    {
+        method => 'hover',
+        args   => [ ],
+        expect => [ ],
+        name   => "hover method executed",
     },
 );
 foreach my $test (@TESTS) {
