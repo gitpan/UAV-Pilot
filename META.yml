@@ -31,6 +31,9 @@ provides:
   UAV::Pilot::Control::ARDrone::SDLNavOutput:
     file: lib/UAV/Pilot/Control/ARDrone/SDLNavOutput.pm
     version: 0
+  UAV::Pilot::Control::ARDrone::Video::FileDump:
+    file: lib/UAV/Pilot/Control/ARDrone/Video/FileDump.pm
+    version: 0
   UAV::Pilot::Driver:
     file: lib/UAV/Pilot/Driver.pm
     version: 0
@@ -42,6 +45,15 @@ provides:
     version: 0
   UAV::Pilot::Driver::ARDrone::NavPacket:
     file: lib/UAV/Pilot/Driver/ARDrone/NavPacket.pm
+    version: 0
+  UAV::Pilot::Driver::ARDrone::Video:
+    file: lib/UAV/Pilot/Driver/ARDrone/Video.pm
+    version: 0
+  UAV::Pilot::Driver::ARDrone::Video::Mock:
+    file: lib/UAV/Pilot/Driver/ARDrone/Video/Mock.pm
+    version: 0
+  UAV::Pilot::Driver::ARDrone::VideoHandler:
+    file: lib/UAV/Pilot/Driver/ARDrone/VideoHandler.pm
     version: 0
   UAV::Pilot::EasyEvent:
     file: lib/UAV/Pilot/EasyEvent.pm
@@ -67,15 +79,23 @@ provides:
   UAV::Pilot::SDL::Joystick:
     file: lib/UAV/Pilot/SDL/Joystick.pm
     version: 0
+  UAV::Pilot::SDL::JoystickConverter:
+    file: lib/UAV/Pilot/SDL/JoystickConverter.pm
+    version: 0
+  UAV::Pilot::SDL::NavFeeder:
+    file: lib/UAV/Pilot/SDL/NavFeeder.pm
+    version: 0
 recommends:
   Getopt::Long: 0
   SDL: 2.5
 requires:
   AnyEvent: 0
   AnyEvent::ReadLine::Gnu: 0
+  DateTime: 0
   File::HomeDir: 0
   File::ShareDir: 1.00
   File::Spec: 0
+  File::Temp: 0
   IO::Socket::Multicast: 0
   Math::Trig: 0
   Moose: 0
@@ -87,4 +107,4 @@ requires:
   perl: v5.12.0
 resources:
   license: http://opensource.org/licenses/bsd-license.php
-version: 0.3
+version: 0.4

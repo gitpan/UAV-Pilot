@@ -21,6 +21,7 @@ use constant {
     SDL_FLAGS  => SDL_HWSURFACE | SDL_HWACCEL | SDL_ANYFORMAT,
     BG_COLOR   => [ 0,   0,   0   ],
     DRAW_VALUE_COLOR        => [ 0x33, 0xff, 0x33 ],
+    DRAW_FEEDER_VALUE_COLOR => [ 0x33, 0x33, 0xff ],
     DRAW_CIRCLE_VALUE_COLOR => [ 0xa8, 0xa8, 0xa8 ],
     TEXT_LABEL_COLOR => [ 0,   0,   255 ],
     TEXT_VALUE_COLOR => [ 255, 0,   0   ],
@@ -39,11 +40,14 @@ use constant {
     ALTITUDE_VALUE_X  => 350,
     BATTERY_VALUE_X   => 450,
 
-    ROLL_DISPLAY_X      => 50,
-    PITCH_DISPLAY_X     => 150,
-    YAW_DISPLAY_X       => 250,
-    ALTITUDE_DISPLAY_X  => 350,
-    BATTERY_DISPLAY_X   => 450,
+    ROLL_DISPLAY_X                 => 50,
+    PITCH_DISPLAY_X                => 150,
+    YAW_DISPLAY_X                  => 250,
+    ALTITUDE_DISPLAY_X             => 350,
+    VERT_SPEED_DISPLAY_HALF_HEIGHT => 10,
+    VERT_SPEED_DISPLAY_WIDTH       => 10,
+    VERT_SPEED_BORDER_WIDTH_MARGIN => 2,
+    BATTERY_DISPLAY_X              => 450,
 
     LINE_VALUE_HALF_MAX_HEIGHT => 10,
     LINE_VALUE_HALF_LENGTH     => 40,
@@ -167,6 +171,10 @@ has 'driver' => (
     is  => 'ro',
     isa => 'UAV::Pilot::Driver',
 );
+has 'feeder' => (
+    is  => 'ro',
+    isa => 'Maybe[UAV::Pilot::SDL::NavFeeder]',
+);
 has '_bg_color' => (
     is  => 'ro',
 );
@@ -253,9 +261,27 @@ sub render
     $self->_write_value( $nav->battery_voltage_percentage . '%',
         $self->BATTERY_VALUE_X, 30 );
 
-    $self->_draw_line_value(        $nav->roll,    $self->ROLL_DISPLAY_X,    100 );
-    $self->_draw_line_value(        $nav->pitch,   $self->PITCH_DISPLAY_X,   100 );
-    $self->_draw_circle_value(      $nav->yaw,     $self->YAW_DISPLAY_X,     100 );
+    my $line_color = $self->DRAW_VALUE_COLOR;
+
+    my $feeder = $self->feeder;
+    if( defined $feeder) {
+        my $feeder_line_color = $self->DRAW_FEEDER_VALUE_COLOR;
+        $self->_draw_line_value(   $feeder->cur_roll,  $self->ROLL_DISPLAY_X,  100,
+            $feeder_line_color );
+        $self->_draw_line_value(   $feeder->cur_pitch, $self->PITCH_DISPLAY_X, 100,
+            $feeder_line_color );
+        $self->_draw_circle_value( $feeder->cur_yaw,   $self->YAW_DISPLAY_X,   100,
+            $feeder_line_color );
+        $self->_draw_line_vert_indicator( $feeder->cur_vert_speed,
+            $self->ALTITUDE_VALUE_X, 100, $self->VERT_SPEED_DISPLAY_HALF_HEIGHT,
+            $self->VERT_SPEED_DISPLAY_WIDTH, $feeder_line_color, $line_color,
+            $self->VERT_SPEED_BORDER_WIDTH_MARGIN );
+    }
+
+    $self->_draw_line_value(   $nav->roll,    $self->ROLL_DISPLAY_X,  100, $line_color );
+    $self->_draw_line_value(   $nav->pitch,   $self->PITCH_DISPLAY_X, 100, $line_color );
+    $self->_draw_circle_value( $nav->yaw,     $self->YAW_DISPLAY_X,   100, $line_color );
+
     # Should we draw anything for altitude?
     $self->_draw_bar_percent_value( $nav->battery_voltage_percentage,
         $self->BATTERY_DISPLAY_X, 100 );
@@ -324,7 +350,7 @@ sub _write_value_float_round
 
 sub _draw_line_value
 {
-    my ($self, $value, $center_x, $center_y) = @_;
+    my ($self, $value, $center_x, $center_y, $color) = @_;
     my $app = $self->sdl;
 
     my $y_addition = int( $self->LINE_VALUE_HALF_MAX_HEIGHT * $value );
@@ -334,16 +360,16 @@ sub _draw_line_value
     my $right_x = $center_x + $self->LINE_VALUE_HALF_LENGTH;
     my $left_x  = $center_x - $self->LINE_VALUE_HALF_LENGTH;
 
-    $app->draw_line( [$left_x, $left_y], [$right_x, $right_y], $self->DRAW_VALUE_COLOR );
+    $app->draw_line( [$left_x, $left_y], [$right_x, $right_y], $color );
     return 1;
 }
 
 sub _draw_circle_value
 {
-    my ($self, $value, $center_x, $center_y) = @_;
+    my ($self, $value, $center_x, $center_y, $value_color) = @_;
     my $app = $self->sdl;
     my $radius = $self->CIRCLE_VALUE_RADIUS;
-    my $color  = $self->DRAW_CIRCLE_VALUE_COLOR;
+    my $color = $self->DRAW_VALUE_COLOR;
 
     my $angle  = Math::Trig::pip2 * $value; # Note use of radians, not degrees
     my $line_x = $center_x - (sin($angle) * $radius);
@@ -352,7 +378,7 @@ sub _draw_circle_value
     $app->draw_circle( [$center_x, $center_y], $radius, $color );
     $app->draw_line( [$center_x, $center_y], [$center_x, $center_y - $radius], $color );
 
-    $app->draw_line( [$center_x, $center_y], [$line_x, $line_y], $self->DRAW_VALUE_COLOR );
+    $app->draw_line( [$center_x, $center_y], [$line_x, $line_y], $value_color );
 
     return 1;
 }
@@ -381,6 +407,30 @@ sub _draw_bar_percent_value
     );
     $app->draw_rect( [ $left_x, $top_percentage_y, $self->BAR_WIDTH, $percentage_height ],
         $color );
+
+    return 1;
+}
+
+sub _draw_line_vert_indicator
+{
+    my ($self, $value, $center_x, $center_y, $half_height, $width, $color, $top_bottom_color, $border_width_margin) = @_;
+    my $app = $self->sdl;
+    my $half_width = $width / 2;
+
+    my $left_x          = $center_x - $half_width;
+    my $right_x         = $center_x + $half_width;
+    my $border_left_x   = $left_x   - $border_width_margin;
+    my $border_right_x  = $right_x + $border_width_margin;
+    my $border_top_y    = $center_y - $half_height;
+    my $border_bottom_y = $center_y + $half_height;
+
+    my $indicator_y = $center_y - ($half_height * $value);
+
+    $app->draw_line( [$border_left_x, $border_top_y], [$border_right_x, $border_top_y], 
+        $top_bottom_color );
+    $app->draw_line( [$border_left_x, $border_bottom_y],
+        [$border_right_x, $border_bottom_y], $top_bottom_color );
+    $app->draw_line( [$left_x, $indicator_y], [$right_x, $indicator_y], $color );
 
     return 1;
 }

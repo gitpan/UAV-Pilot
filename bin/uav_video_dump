@@ -1,0 +1,110 @@
+#!/usr/bin/perl
+use v5.14;
+use warnings;
+use IO::Socket::INET;
+use UAV::Pilot;
+use UAV::Pilot::Driver::ARDrone;
+use UAV::Pilot::Driver::ARDrone::Video;
+use UAV::Pilot::Driver::ARDrone::Video::Mock;
+use UAV::Pilot::Control::ARDrone::Video::FileDump;
+use AnyEvent;
+use Getopt::Long;
+
+my $HOST     = '192.168.1.1';
+my $FILE_OUT = '';
+my $FILE_IN  = '';
+Getopt::Long::GetOptions(
+    'out=s' => \$FILE_OUT,
+    'in=s'  => \$FILE_IN,
+);
+
+$SIG{'INT'} = 'cleanup';
+
+
+my $ardrone = UAV::Pilot::Driver::ARDrone->new({
+    host => $HOST,
+});
+
+my $fh = undef;
+if( $FILE_OUT eq '' ) {
+    $fh = \*STDOUT;
+}
+else {
+    open( $fh, '>', $FILE_OUT )
+        or die "Can't open $FILE_OUT for writing: $!\n";
+}
+my $control_video = UAV::Pilot::Control::ARDrone::Video::FileDump->new({
+    fh => $fh,
+});
+
+my $cv = AnyEvent->condvar;
+my %video_args = (
+        handler => $control_video,
+        condvar => $cv,
+        driver  => $ardrone,
+);
+
+my $driver_video = $FILE_IN
+    ? UAV::Pilot::Driver::ARDrone::Video::Mock->new({
+        %video_args,
+        file => $FILE_IN,
+    })
+    : UAV::Pilot::Driver::ARDrone::Video->new( \%video_args );
+$driver_video->init_event_loop;
+my $start_time = time;
+$cv->recv;
+
+
+END { cleanup() }
+
+
+my $cleanup_done = 0;
+sub cleanup
+{
+    return if $cleanup_done;
+    my $end_time = time;
+
+    if( defined $driver_video ) {
+        my $num_frames = $driver_video->frames_processed;
+        warn "Frames processed: $num_frames \n";
+
+        my $duration = $end_time - $start_time;
+        my $fps = $num_frames / $duration;
+        warn "FPS: $fps\n";
+    }
+
+    close $fh if defined $fh;
+    $cleanup_done = 1;
+    exit;
+}
+
+
+__END__
+
+=head1 SYNOPSIS
+
+    uav_video_dump --out /path/to/out_video.h264
+
+=head1 DESCRIPTION
+
+Reads the video stream from the Parrot AR.Drone and puts it in a file.
+
+If the C<--out> parameter is not specified, it will dump to C<STDOUT>.  In theory, something 
+like the below should show the video stream in real time:
+
+    uav_video_dump | vlc -
+
+But it hasn't worked for me yet.  I'd be interested in comments/patches from anybody who 
+figures it out.
+
+VLC seems to guess the FPS of the h264 stream correctly.  Mplayer doesn't seem to, and will 
+show a streaky mess when it guesses wrong.  The FPS setting will depend on your AR.Drone's 
+configuration.  You can try 30.  Set it in mplayer with:
+
+    mplayer -fps 30 /path/to/video.h264
+
+If you want to know the exact value, you can telnet into your AR.Drone (after connecting 
+to it on wifi, of course) and cat the file C</data/config.ini>.  The setting will be 
+under the C<[video]> section with the key C<codec_fps>.
+
+=cut

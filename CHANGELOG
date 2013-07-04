@@ -1,3 +1,12 @@
+Version 0.4
+-----------
+* Dump video to file
+    * If using mplayer to show the file, set the FPS manually with 
+      "mplayer -fps 30 /path/to/file.h264"
+* Rename anything that starts an event loop to init_event_loop()
+* Joystick to UAV control number conversion decoupled from ARDrone specifics
+* Add methods to UAV::Pilot::Control::ARDrone for userbox nav data and picture taking
+
 Version 0.3
 -----------
 * Event-based interface
