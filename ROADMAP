@@ -1,16 +1,11 @@
-Version 0.5
------------
-* Show video in real-time (without using pipes)
-* Allow cutting joystick input by a percentage for easier control
-* Configure reversing of the axis on the joystick
-* Allow other actions to be mapped to joystick buttons (flips and such)
-* Override conf file for Joystick
-* Wiimote control (?)
-* API Change: VideoHandler should be under UAV::Pilot::Video, change name to H264Handler,
-  change required method to 'process_h264_frame'
-
 Version 6
 -----------
+* UAV::SDL::Video (xs) -- Use sws_getCachedContext() instead of sws_getContext()
 * Error message formatting in REPL
 * Facial Recognition with Image::ObjectDetect
 * EasyEvent takes nav data into account ("vert_speed 1.0 until altitude == 10000cm")
+* Possibly use subref in @INC to load REPL modules.  See require() perlfunc docs in 
+  Perl 5.19.2.  Note that feature was implemented in 5.10 according to 5.19.2's perldelta.
+* Wiimote control (?)
+* bin/uav uses a Factory object to create the Driver and Control objects
+* bin/uav loads a config file for loading modules by default

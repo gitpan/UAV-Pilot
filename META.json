@@ -14,6 +14,11 @@
    },
    "name" : "UAV-Pilot",
    "prereqs" : {
+      "build" : {
+         "requires" : {
+            "ExtUtils::CBuilder" : "0"
+         }
+      },
       "configure" : {
          "requires" : {
             "Module::Build" : "0.40"
@@ -38,6 +43,7 @@
             "MooseX::Event" : "0",
             "Test::More" : "0",
             "Throwable" : "0",
+            "XSLoader" : "0",
             "YAML" : "0",
             "namespace::autoclean" : "0",
             "perl" : "v5.12.0"
@@ -69,10 +75,6 @@
          "file" : "lib/UAV/Pilot/Control/ARDrone/SDLNavOutput.pm",
          "version" : 0
       },
-      "UAV::Pilot::Control::ARDrone::Video::FileDump" : {
-         "file" : "lib/UAV/Pilot/Control/ARDrone/Video/FileDump.pm",
-         "version" : 0
-      },
       "UAV::Pilot::Driver" : {
          "file" : "lib/UAV/Pilot/Driver.pm",
          "version" : 0
@@ -97,15 +99,15 @@
          "file" : "lib/UAV/Pilot/Driver/ARDrone/Video/Mock.pm",
          "version" : 0
       },
-      "UAV::Pilot::Driver::ARDrone::VideoHandler" : {
-         "file" : "lib/UAV/Pilot/Driver/ARDrone/VideoHandler.pm",
-         "version" : 0
-      },
       "UAV::Pilot::EasyEvent" : {
          "file" : "lib/UAV/Pilot/EasyEvent.pm",
          "version" : 0
       },
       "UAV::Pilot::Exception" : {
+         "file" : "lib/UAV/Pilot/Exceptions.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::FileNotFoundException" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm",
          "version" : 0
       },
@@ -140,6 +142,34 @@
       "UAV::Pilot::SDL::NavFeeder" : {
          "file" : "lib/UAV/Pilot/SDL/NavFeeder.pm",
          "version" : 0
+      },
+      "UAV::Pilot::SDL::Video" : {
+         "file" : "lib/UAV/Pilot/SDL/Video.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::Video::FileDump" : {
+         "file" : "lib/UAV/Pilot/Video/FileDump.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::Video::H264Decoder" : {
+         "file" : "lib/UAV/Pilot/Video/H264Decoder.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::Video::H264Handler" : {
+         "file" : "lib/UAV/Pilot/Video/H264Handler.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::Video::Mock::RawHandler" : {
+         "file" : "lib/UAV/Pilot/Video/Mock/RawHandler.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::Video::RawHandler" : {
+         "file" : "lib/UAV/Pilot/Video/RawHandler.pm",
+         "version" : 0
+      },
+      "UAV::Pilot::VideoException" : {
+         "file" : "lib/UAV/Pilot/Exceptions.pm",
+         "version" : 0
       }
    },
    "release_status" : "stable",
@@ -148,5 +178,5 @@
          "http://opensource.org/licenses/bsd-license.php"
       ]
    },
-   "version" : "0.4"
+   "version" : "0.5"
 }

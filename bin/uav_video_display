@@ -1,0 +1,78 @@
+#!/usr/bin/perl
+use v5.14;
+use warnings;
+use AnyEvent;
+use UAV::Pilot;
+use UAV::Pilot::Driver::ARDrone;
+use UAV::Pilot::Driver::ARDrone::Video;
+use UAV::Pilot::Driver::ARDrone::Video::Mock;
+use UAV::Pilot::Control::ARDrone;
+use UAV::Pilot::SDL::Events;
+use UAV::Pilot::SDL::Video;
+use UAV::Pilot::Video::H264Decoder;
+use Getopt::Long ();
+
+use constant NAV_UPDATE_INTERVAL => 1 / 30;
+
+
+my $IP      = '192.168.1.1';
+my $FILE_IN = '';
+Getopt::Long::GetOptions(
+    'host=s' => \$IP,
+    'in=s'   => \$FILE_IN,
+);
+
+
+{
+    my $cv = AnyEvent->condvar;
+    my $sdl_events = UAV::Pilot::SDL::Events->new({
+        condvar => $cv,
+    });
+
+    my $display = UAV::Pilot::SDL::Video->new;
+    my $video   = UAV::Pilot::Video::H264Decoder->new({
+        display => $display,
+    });
+
+    $sdl_events->register( $display );
+
+    my $ardrone = UAV::Pilot::Driver::ARDrone->new({
+        host => $IP,
+    });
+
+    my %video_args = (
+        handler => $video,
+        condvar => $cv,
+        driver  => $ardrone,
+    );
+    my $driver_video = $FILE_IN
+        ? UAV::Pilot::Driver::ARDrone::Video::Mock->new({
+            %video_args,
+            file => $FILE_IN,
+        })
+        : UAV::Pilot::Driver::ARDrone::Video->new( \%video_args );
+
+    my $dev = UAV::Pilot::Control::ARDrone->new({
+        sender => $ardrone,
+        video  => $driver_video,
+    });
+
+    $_->init_event_loop for $driver_video, $sdl_events;
+    $cv->recv;
+}
+
+__END__
+
+
+=head1 SYNOPSIS
+
+    uav_video_display \
+        --host 192.168.1.1 \
+        --in /path/to/file
+
+=head1 DESCRIPTION
+
+Shows a video stream from the UAV in an SDL window.  If the C<--in> option is specified 
+with a file, plays the stream from that file instead of connecting to the UAV.
+
+=cut
