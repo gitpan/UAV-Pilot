@@ -34,15 +34,15 @@ my $ardrone = UAV::Pilot::Driver::ARDrone::Mock->new({
     host => 'localhost',
 });
 my $driver_video = UAV::Pilot::Driver::ARDrone::Video::Mock->new({
-    file    => VIDEO_DUMP_FILE,
-    handler => $control_video,
-    condvar => $cv,
-    driver  => $ardrone,
+    file     => VIDEO_DUMP_FILE,
+    handlers => [ $control_video ],
+    condvar  => $cv,
+    driver   => $ardrone,
 });
 isa_ok( $driver_video => 'UAV::Pilot::Driver::ARDrone::Video' );
 
 my $dev = UAV::Pilot::Control::ARDrone->new({
-    sender => $ardrone,
+    driver => $ardrone,
     video  => $driver_video,
 });
 

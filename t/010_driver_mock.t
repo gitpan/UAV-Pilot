@@ -1,18 +1,18 @@
-use Test::More tests => 40;
+use Test::More tests => 41;
 use v5.14;
 use UAV::Pilot;
 use UAV::Pilot::Exceptions;
 use UAV::Pilot::Driver;
-use UAV::Pilot::Driver::ARDrone;
-use UAV::Pilot::Driver::ARDrone::Mock;
+use UAV::Pilot::ARDrone::Driver;
+use UAV::Pilot::ARDrone::Driver::Mock;
 use Test::Moose;
 
-my $ardrone_mock = UAV::Pilot::Driver::ARDrone::Mock->new({
+my $ardrone_mock = UAV::Pilot::ARDrone::Driver::Mock->new({
     host => 'localhost',
     port => 7776,
 });
 ok( $ardrone_mock, "Created object" );
-isa_ok( $ardrone_mock => 'UAV::Pilot::Driver::ARDrone::Mock' );
+isa_ok( $ardrone_mock => 'UAV::Pilot::ARDrone::Driver::Mock' );
 does_ok( $ardrone_mock => 'UAV::Pilot::Driver' );
 cmp_ok( $ardrone_mock->port, '==', 7776, "Port set" );
 
@@ -117,7 +117,7 @@ if( $@ && $@->isa( 'UAV::Pilot::NumberOutOfRangeException' ) ) {
         "Sequence was not incrmented for Out of Range error" );
 }
 
-my $ardrone_port_check = UAV::Pilot::Driver::ARDrone::Mock->new({
+my $ardrone_port_check = UAV::Pilot::ARDrone::Driver::Mock->new({
     host => 'localhost',
 });
 cmp_ok( $ardrone_port_check->port, '==', 5556, "Correct default port" );
@@ -164,7 +164,7 @@ $ardrone_mock->read_nav_packet(
     'c1030000',   # Checksum data
 );
 $last_nav_packet = $ardrone_mock->last_nav_packet;
-isa_ok( $last_nav_packet => 'UAV::Pilot::Driver::ARDrone::NavPacket' );
+isa_ok( $last_nav_packet => 'UAV::Pilot::ARDrone::NavPacket' );
 cmp_ok( $last_nav_packet->header, '==', 0x55667788, "Header (magic number) parsed" );
 
 cmp_ok( $ardrone_mock->ARDRONE_USERBOX_CMD_STOP, '==', 0,
@@ -175,3 +175,17 @@ cmp_ok( $ardrone_mock->ARDRONE_USERBOX_CMD_START, '==', 1,
     "Userbox start config command" );
 cmp_ok( $ardrone_mock->ARDRONE_USERBOX_CMD_SCREENSHOT, '==', 2,
     "userbox screenshot config command" );
+
+my $seq = $ardrone_mock->seq;
+$ardrone_mock->multi_cmds( sub {
+    $ardrone_mock->at_config_ids( 1234, 5678, 9012 );
+    $ardrone_mock->at_config( 'video:camif_fps', 30 );
+    $ardrone_mock->at_config( 'video:bitrate', 1000 );
+});
+my $multi_cfg_expect = join( "\r",
+    'AT*CONFIG_IDS=' . ($seq+1) . ',1234,5678,9012',
+    'AT*CONFIG=' . ($seq+2) . ',"video:camif_fps","30"',
+    'AT*CONFIG=' . ($seq+3) . ',"video:bitrate","1000"',
+) . "\r";
+my $multi_cfg_got = $ardrone_mock->last_cmd;
+cmp_ok( $multi_cfg_got, 'eq', $multi_cfg_expect, "Sent multiple commands at once" );

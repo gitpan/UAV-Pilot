@@ -1,17 +1,18 @@
-use Test::More tests => 63;
+use Test::More tests => 66;
 use v5.14;
-use UAV::Pilot::Driver::ARDrone::Mock;
-use UAV::Pilot::Control::ARDrone;
+use UAV::Pilot::ARDrone::Driver::Mock;
+use UAV::Pilot::ARDrone::Control;
 use Test::Moose;
+use String::CRC32 'crc32';
 
-my $ardrone = UAV::Pilot::Driver::ARDrone::Mock->new({
+my $ardrone = UAV::Pilot::ARDrone::Driver::Mock->new({
     host => 'localhost',
 });
 $ardrone->connect;
-my $dev = UAV::Pilot::Control::ARDrone->new({
-    sender => $ardrone,
+my $dev = UAV::Pilot::ARDrone::Control->new({
+    driver => $ardrone,
 });
-isa_ok( $dev => 'UAV::Pilot::Control::ARDrone' );
+isa_ok( $dev => 'UAV::Pilot::ARDrone::Control' );
 does_ok( $dev => 'UAV::Pilot::Control' );
 does_ok( $dev => 'UAV::Pilot::SDL::JoystickConverter' );
 
@@ -350,6 +351,12 @@ my @TESTS = (
             # Fix arg value
         name   => "Take picture command",
     },
+    {
+        method => 'record_usb',
+        args   => [ ],
+        expect => [ qq{AT*CONFIG=~SEQ~,"video:video_on_usb","TRUE"\r} ],
+        name   => "Record USB command",
+    },
 );
 foreach my $test (@TESTS) {
     $seq++ if @{ $$test{expect} };
@@ -378,3 +385,16 @@ cmp_ok( $dev->convert_sdl_input( -32767 ), '==', -0.999969482421875,
     "Convert SDL input -(2**15 + 1)" );
 cmp_ok( $dev->convert_sdl_input( 16384 ),  '==', 0.5,  "Convert SDL input 16384" );
 cmp_ok( $dev->convert_sdl_input( -32768 ), '==', -1.0, "Convert overflow input" );
+
+
+$ardrone->saved_commands; # Flush commands
+my $session_id = sprintf( '%x', crc32( int rand 2**16 ) );
+my $user_id    = sprintf( '%x', crc32( 'uav_pilot_user' ) );
+my $app_id     = sprintf( '%x', crc32( 'uav_pilot' ) );
+$dev->set_multiconfig( $user_id, $app_id, $session_id );
+my @multiconfig_cmds = $ardrone->saved_commands;
+cmp_ok( scalar(@multiconfig_cmds), '==', 6, "Init'd multiconfig" );
+$dev->send_config( $ardrone->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
+    $ardrone->ARDRONE_USERBOX_CMD_START );
+my @config_cmds = $ardrone->saved_commands;
+cmp_ok( scalar(@config_cmds), '==', 2, "Config with multiconfig" );

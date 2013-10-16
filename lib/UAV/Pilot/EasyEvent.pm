@@ -23,6 +23,17 @@ has '_timers' => (
         _add_timer => 'push',
     },
 );
+has '_events' => (
+    traits  => [ 'Hash' ],
+    is      => 'ro',
+    isa     => 'HashRef[ArrayRef[HashRef[Item]]]',
+    default => sub { {} },
+    handles => {
+        '_set_event_callbacks' => 'set',
+        '_event_type_exists'   => 'exists',
+        '_get_event_callbacks' => 'get',
+    },
+);
 
 
 sub add_timer
@@ -44,6 +55,54 @@ sub add_timer
     });
 
     return $new_self;
+}
+
+sub add_event
+{
+    my ($self, $name, $callback, $is_oneoff) = @_;
+    $is_oneoff //= 0;
+
+    my @callbacks;
+    if( $self->_event_type_exists( $name ) ) {
+        @callbacks  = @{ $self->_get_event_callbacks( $name ) };
+    }
+    else {
+        @callbacks = ();
+    }
+
+    push @callbacks, {
+        callback   => $callback,
+        is_one_off => $is_oneoff,
+    };
+    $self->_set_event_callbacks( $name => \@callbacks );
+
+    return 1;
+}
+
+sub send_event
+{
+    my ($self, $name, @args) = @_;
+    my $callbacks            = $self->_get_event_callbacks( $name );
+    return 1 unless defined $callbacks;
+    my @callbacks            = (@$callbacks);
+    my $is_callbacks_changed = 0;
+
+    foreach my $i (0 .. $#callbacks) {
+        # Always modify the *original* arrayref $callbacks here, not the 
+        # copy @callbacks.  If we splice out a one-off, @callbacks will be
+        # changed and the index will be off.
+        my $cb         = $callbacks->[$i]{callback};
+        my $is_one_off = $callbacks->[$i]{is_one_off};
+        $cb->();
+
+        if( $is_one_off ) {
+            splice @callbacks, $i, 1;
+            $is_callbacks_changed = 1;
+        }
+    }
+
+    $self->_set_event_callbacks( $name => \@callbacks) if $is_callbacks_changed;
+    return 1;
 }
 
 sub init_event_loop
@@ -182,5 +241,27 @@ This method must be called after running a series of C<add_timer()> calls.  You 
 to call this on the root object, not the children.
 
 You must call C<recv> on the C<condvar> yourself.
+
+=head1 add_event
+
+  add_event( 'foo', sub {...}, 0 )
+
+Add a subref that will be called when the named event is fired off.  The 
+first parameter is the name of the event, and the second is the subref.
+
+The third is optional, and specifies if the call will be a "one-off" or not.  
+If it's a one-off, then after the first call to the sub, it will be removed 
+from list of callbacks.  Defaults to false.
+
+The callback will receive the arguments that were passed to C<send_event()> 
+when the event is triggered.
+
+=head1 send_event
+
+  send_event( 'foo', @args )
+
+Trigger an event with the given name.  The first arg is the name of the event.  
+All subsequent args will be passed to the callbacks attached to that event 
+name.
 
 =cut

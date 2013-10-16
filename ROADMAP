@@ -1,11 +1,21 @@
-Version 6
+Version 0.7
 -----------
+* Send multiconfig commands in order to set video display size and fps
+* Implement WumpusRover
+
+
+Version 0.8
+-----------
+* UAV::Pilot::SDL::WindowEventHandlers should be handed an SDL::Surface 
+  to draw on
+* SDL2 w/Streaming pixels for video?  Or OpenGL?
+    * Navigation overlay on top of video
+    * Get the color right on top of the UAV::Pilot::SDL::VideoOverlay
 * UAV::SDL::Video (xs) -- Use sws_getCachedContext() instead of sws_getContext()
 * Error message formatting in REPL
-* Facial Recognition with Image::ObjectDetect
 * EasyEvent takes nav data into account ("vert_speed 1.0 until altitude == 10000cm")
 * Possibly use subref in @INC to load REPL modules.  See require() perlfunc docs in 
   Perl 5.19.2.  Note that feature was implemented in 5.10 according to 5.19.2's perldelta.
-* Wiimote control (?)
 * bin/uav uses a Factory object to create the Driver and Control objects
 * bin/uav loads a config file for loading modules by default
+* Build script checks for ffmpeg being installed

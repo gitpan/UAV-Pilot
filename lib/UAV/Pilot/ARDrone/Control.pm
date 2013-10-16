@@ -1,65 +1,106 @@
-package UAV::Pilot::Control::ARDrone;
+package UAV::Pilot::ARDrone::Control;
 use v5.14;
 use Moose;
 use namespace::autoclean;
 use DateTime;
+use String::CRC32 ();
+use UAV::Pilot::EasyEvent;
+use UAV::Pilot::NavCollector::AckEvents;
 
 
 with 'UAV::Pilot::Control';
 
+use constant NAV_EVENT_READ_TIME => 1 / 60;
+
+
 has 'video' => (
     is  => 'rw',
-    isa => 'Maybe[UAV::Pilot::Driver::ARDrone::Video]',
+    isa => 'Maybe[UAV::Pilot::ARDrone::Video]',
 );
+has 'session_id' => (
+    is     => 'ro',
+    isa    => 'Maybe[Str]',
+    writer => '_set_session_id',
+);
+has 'app_id' => (
+    is     => 'ro',
+    isa    => 'Maybe[Str]',
+    writer => '_set_app_id',
+);
+has 'user_id' => (
+    is     => 'ro',
+    isa    => 'Maybe[Str]',
+    writer => '_set_user_id',
+);
+has '_did_set_multiconfig' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+
+with 'UAV::Pilot::Logger';
+
+
+sub BUILD
+{
+    my ($self) = @_;
+
+    if( defined $self->user_id && defined $self->app_id ) {
+        $self->set_multiconfig( $self->user_id, $self->app_id,
+            $self->session_id );
+    }
+
+    return 1;
+}
 
 
 sub takeoff
 {
     my ($self) = @_;
-    $self->sender->at_ref( 1, 0 );
+    $self->driver->at_ref( 1, 0 );
     return 1;
 }
 
 sub land
 {
     my ($self) = @_;
-    $self->sender->at_ref( 0, 0 );
+    $self->driver->at_ref( 0, 0 );
 }
 
 sub pitch
 {
     my ($self, $pitch) = @_;
-    $self->sender->at_pcmd( 1, 0, 0, $pitch, 0, 0 );
+    $self->driver->at_pcmd( 1, 0, 0, $pitch, 0, 0 );
 }
 
 sub roll
 {
     my ($self, $roll) = @_;
-    $self->sender->at_pcmd( 1, 0, $roll, 0, 0, 0 );
+    $self->driver->at_pcmd( 1, 0, $roll, 0, 0, 0 );
 }
 
 sub yaw
 {
     my ($self, $yaw) = @_;
-    $self->sender->at_pcmd( 1, 0, 0, 0, 0, $yaw );
+    $self->driver->at_pcmd( 1, 0, 0, 0, 0, $yaw );
 }
 
 sub vert_speed
 {
     my ($self, $speed) = @_;
-    $self->sender->at_pcmd( 1, 0, 0, 0, $speed, 0 );
+    $self->driver->at_pcmd( 1, 0, 0, 0, $speed, 0 );
 }
 
 sub calibrate
 {
     my ($self) = @_;
-    $self->sender->at_calib( $self->sender->ARDRONE_CALIBRATION_DEVICE_MAGNETOMETER );
+    $self->driver->at_calib( $self->driver->ARDRONE_CALIBRATION_DEVICE_MAGNETOMETER );
 }
 
 sub emergency
 {
     my ($self) = @_;
-    $self->sender->at_ref( 0, 1 );
+    $self->driver->at_ref( 0, 1 );
     $self->video->emergency_restart if defined $self->video;
     return 1;
 }
@@ -67,7 +108,7 @@ sub emergency
 sub reset_watchdog
 {
     my ($self) = @_;
-    $self->sender->at_comwdg();
+    $self->driver->at_comwdg();
     return 1;
 }
 
@@ -78,7 +119,7 @@ sub hover
 }
 
 {
-    my $send = 'UAV::Pilot::Driver::ARDrone';
+    my $send = 'UAV::Pilot::ARDrone::Driver';
     my @FLIGHT_ANIMS = (
         {
             name   => 'phi_m30',
@@ -189,8 +230,8 @@ sub hover
         no strict 'refs';
         *$name = sub {
             my ($self) = @_;
-            $self->sender->at_config(
-                $self->sender->ARDRONE_CONFIG_CONTROL_FLIGHT_ANIM,
+            $self->send_config(
+                $self->driver->ARDRONE_CONFIG_CONTROL_FLIGHT_ANIM,
                 sprintf( '%d,%d', $anim, $mayday ),
             );
         };
@@ -198,7 +239,7 @@ sub hover
 }
 
 {
-    my $send = 'UAV::Pilot::Driver::ARDrone';
+    my $send = 'UAV::Pilot::ARDrone::Driver';
 
     my @LED_ANIMS = (
         {
@@ -293,11 +334,11 @@ sub hover
         no strict 'refs';
         *$name = sub {
             my ($self, $freq, $duration) = @_;
-            $self->sender->at_config(
-                $self->sender->ARDRONE_CONFIG_LEDS_LEDS_ANIM,
+            $self->send_config(
+                $self->driver->ARDRONE_CONFIG_LEDS_LEDS_ANIM,
                 sprintf( '%d,%d,%d',
                     $anim,
-                    $self->sender->float_convert( $freq ),
+                    $self->driver->float_convert( $freq ),
                     $duration,
                 ),
             );
@@ -317,9 +358,9 @@ sub convert_sdl_input
 sub start_userbox_nav_data
 {
     my ($self) = @_;
-    $self->sender->at_config(
-        $self->sender->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
-        $self->sender->ARDRONE_USERBOX_CMD_START,
+    $self->send_config(
+        $self->driver->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
+        $self->driver->ARDRONE_USERBOX_CMD_START,
     );
     return 1;
 }
@@ -327,9 +368,9 @@ sub start_userbox_nav_data
 sub stop_userbox_nav_data
 {
     my ($self) = @_;
-    $self->sender->at_config(
-        $self->sender->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
-        $self->sender->ARDRONE_USERBOX_CMD_STOP,
+    $self->send_config(
+        $self->driver->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
+        $self->driver->ARDRONE_USERBOX_CMD_STOP,
     );
     return 1;
 }
@@ -337,9 +378,9 @@ sub stop_userbox_nav_data
 sub cancel_userbox_nav_data
 {
     my ($self) = @_;
-    $self->sender->at_config(
-        $self->sender->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
-        $self->sender->ARDRONE_USERBOX_CMD_CANCEL,
+    $self->send_config(
+        $self->driver->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
+        $self->driver->ARDRONE_USERBOX_CMD_CANCEL,
     );
     return 1;
 }
@@ -349,10 +390,10 @@ sub take_picture
     my ($self, $delay, $num_pics, $date) = @_;
     $date = DateTime->now->strftime( '%Y%m%d_%H%M%S' )
         if ! defined $date;
-    $self->sender->at_config(
-        $self->sender->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
+    $self->send_config(
+        $self->driver->ARDRONE_CONFIG_USERBOX_USERBOX_CMD,
         sprintf( '%d,%d,%d,%s', 
-            $self->sender->ARDRONE_USERBOX_CMD_SCREENSHOT,
+            $self->driver->ARDRONE_USERBOX_CMD_SCREENSHOT,
             $delay,
             $num_pics,
             $date,
@@ -360,6 +401,88 @@ sub take_picture
     );
     return 1;
 }
+
+sub set_multiconfig
+{
+    my ($self, $user_id, $app_id, $session_id) = @_;
+    $session_id //= $self->_generate_session_id;
+    my $driver = $self->driver;
+
+    $self->_logger->info( "Setting multiconfig keys.  App ID [$app_id],"
+        . "User ID [$user_id], Session ID [$session_id]" );
+
+    $driver->at_config_ids( $session_id, $user_id, $app_id );
+    $driver->at_config(
+        $driver->ARDRONE_CONFIG_CUSTOM_SESSION_ID, $session_id );
+    sleep 1;
+
+    $driver->at_config_ids( $session_id, $user_id, $app_id );
+    $driver->at_config( $driver->ARDRONE_CONFIG_CUSTOM_PROFILE_ID, $user_id );
+    sleep 1;
+
+    $driver->at_config_ids( $session_id, $user_id, $app_id );
+    $driver->at_config(
+        $driver->ARDRONE_CONFIG_CUSTOM_APPLICATION_ID, $app_id );
+    sleep 1;
+
+    $self->_set_session_id( $session_id );
+    $self->_set_app_id( $app_id );
+    $self->_set_user_id( $user_id );
+    $self->_did_set_multiconfig( 1 );
+
+    return 1;
+}
+
+sub send_config
+{
+    my ($self, $name, $value) = @_;
+    my $driver = $self->driver;
+    $driver->at_config_ids( $self->session_id, $self->user_id, $self->app_id )
+        if $self->_did_set_multiconfig;
+    $driver->at_config( $name, $value );
+    return 1;
+}
+
+sub record_usb
+{
+    my ($self) = @_;
+    $self->send_config(
+        $self->driver->ARDRONE_CONFIG_VIDEO_VIDEO_ON_USB,
+        'TRUE',
+    );
+    return 1;
+}
+
+sub setup_read_nav_event
+{
+    my ($self, $event) = @_;
+
+    my $ack = UAV::Pilot::NavCollector::AckEvents->new({
+        easy_event => $event,
+    });
+    $self->driver->add_nav_collector( $ack );
+
+    my $w; $w = AnyEvent->timer(
+        after    => $self->NAV_EVENT_READ_TIME,
+        interval => $self->NAV_EVENT_READ_TIME,
+        cb => sub {
+            my $driver = $self->driver;
+            $driver->read_nav_packet;
+            $w;
+        },
+    );
+    return 1;
+}
+
+
+sub _generate_session_id
+{
+    my ($self) = @_;
+    my $id     = String::CRC32::crc32( int rand 2**16 );
+    my $hex_id = sprintf '%x', $id;
+    return $hex_id;
+}
+
 
 
 no Moose;
@@ -370,14 +493,14 @@ __END__
 
 =head1 NAME
 
-  UAV::Pilot::Control::ARDrone
+  UAV::Pilot::ARDrone::Control
 
 =head1 SYNOPSIS
 
-    my $sender = UAV::Pilot::Driver::ARDrone->new( ... );
-    $sender->connect;
-    my $dev = UAV::Pilot::Control::ARDrone->new({
-        sender => $sender,
+    my $driver = UAV::Pilot::ARDrone::Driver->new( ... );
+    $driver->connect;
+    my $dev = UAV::Pilot::ARDrone::Control->new({
+        driver => $driver,
     });
     
     $dev->takeoff;
@@ -392,7 +515,10 @@ L<UAV::Pilot::Control> implementation for the Parrot AR.Drone.
 
 =head1 METHODS
 
-=head1 new
+=head2 new
+
+B<NOTE>: It's highly recommended that you initialize the subclass 
+C<UAV::Pilot::Control::ARDrone::Event> instead of this one.
 
     new({
         driver => $driver,
@@ -490,6 +616,45 @@ Saves a picture in JPG format to:
     /boxes/flight_YYYYMMDD_hhmmss/picture_YYYYMMDD_hhmmss.jpg
 
 You can FTP into the AR.Drone to retrieve this.
+
+=head2 record_usb
+
+Start recording the video stream to a USB stick attached to the AR.Drone's internal USB 
+port.  The stick must have at least 100MB free.
+
+=head2 setup_read_nav_event
+
+  setup_read_nav_event( $event );
+
+Pass a C<UAV::Pilot::EasyEvent> object.  Sets up a 
+C<UAV::Pilot::NavCollector::AckEvents> and starts an event timer for reading 
+nav packets.
+
+=head2 set_multiconfig
+
+  set_multiconfig( $user_id, $app_id, $session_id )
+
+B<NOTE>: This doesn't yet seem to work right.  You can set the keys, but 
+the UAV won't respond to config commands after that.  It should just be a 
+matter of sending C<AT*CONFIG_IDS> before each C<AT*CONFIG>, which is what 
+C<send_config()> will do for you.  But it doesn't work.  Still debugging . . . 
+
+Pass a unique user, app, and session ID.  The best way to generate these is 
+to take a string identifying your user and app and run it through a CRC32.  
+The C<$session_id> is optional; if passed, it should be unique to this 
+particular run.
+
+In the AR.Drone, "multiconfig" is a way to set configurations that are unique 
+to the user, app, or session.  For backwards compatibility with old apps, 
+the AR.Drone only lets you set some keys when using multiconfig.  See the 
+AR.Drone SDK docs for details.
+
+=head2 send_config
+
+  send_config( $name, $value )
+
+Send a config name/value.  If you used C<set_multiconfig()>, this will send 
+the necessary commands before the config setting.
 
 =head1 FLIGHT ANIMATION METHODS
 

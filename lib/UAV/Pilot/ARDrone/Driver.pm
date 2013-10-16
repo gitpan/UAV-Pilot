@@ -1,12 +1,15 @@
-package UAV::Pilot::Driver::ARDrone;
+package UAV::Pilot::ARDrone::Driver;
 use v5.14;
 use Moose;
 use namespace::autoclean;
 use IO::Socket;
 use IO::Socket::Multicast;
 use UAV::Pilot::Exceptions;
+use UAV::Pilot::NavCollector;
+use UAV::Pilot::ARDrone::NavPacket;
 
 with 'UAV::Pilot::Driver';
+with 'UAV::Pilot::Logger';
 
 use constant {
     TRUE  => 'TRUE',
@@ -100,7 +103,7 @@ use constant {
     ARDRONE_CONFIG_VIDEO_CODEC_FPS            => 'video:codec_fps',
     ARDRONE_CONFIG_VIDEO_CAMIF_BUFFERS        => 'video:camif_buffers',
     ARDRONE_CONFIG_VIDEO_NUM_TRACKERS         => 'video:num_trackers',
-    ARDRONE_CONFIG_VIDEO_CODEC                => 'video:codec',
+    ARDRONE_CONFIG_VIDEO_VIDEO_CODEC          => 'video:codec',
     ARDRONE_CONFIG_VIDEO_VIDEO_SLICES         => 'video:video_slices',
     ARDRONE_CONFIG_VIDEO_VIDEO_LIVE_SOCKET    => 'video:video_live_socket',
     ARDRONE_CONFIG_VIDEO_VIDEO_STORAGE_SPACE  => 'video:video_storage_space',
@@ -109,7 +112,7 @@ use constant {
     ARDRONE_CONFIG_VIDEO_BITRATE_CONTROL_MODE => 'video:bitrate_control_mode',
     ARDRONE_CONFIG_VIDEO_BITRATE_STORAGE      => 'video:bitrate_storage',
     ARDRONE_CONFIG_VIDEO_VIDEO_CHANNEL        => 'video:video_channel',
-    ARDRONE_CONFIG_VIDEO_ON_USB               => 'video:video_on_usb',
+    ARDRONE_CONFIG_VIDEO_VIDEO_ON_USB         => 'video:video_on_usb',
     ARDRONE_CONFIG_VIDEO_VIDEO_FILE_INDEX     => 'video:video_file_index',
 
     ARDRONE_CONFIG_LEDS_LEDS_ANIM => 'leds:leds_anim',
@@ -198,6 +201,20 @@ use constant {
     ARDRONE_CONFIG_LED_ANIMATION_LEFT_GREEN_RIGHT_RED         => 18,
     ARDRONE_CONFIG_LED_ANIMATION_LEFT_RED_RIGHT_GREEN         => 19,
     ARDRONE_CONFIG_LED_ANIMATION_BLINK_STANDARD               => 20,
+
+    ARDRONE_CONFIG_VIDEO_CHANNEL_ZAP_CHANNEL_HORI => 0,
+    ARDRONE_CONFIG_VIDEO_CHANNEL_ZAP_CHANNEL_VERT => 1,
+
+    ARDRONE_CONFIG_VIDEO_CODEC_MP4_360P           => 0x80,
+    ARDRONE_CONFIG_VIDEO_CODEC_H264_360P          => 0x81,
+    ARDRONE_CONFIG_VIDEO_CODEC_MP4_360P_H264_720P => 0x82,
+    ARDRONE_CONFIG_VIDEO_CODEC_H264_720P          => 0x83,
+    ARDRONE_CONFIG_VIDEO_CODEC_MP4_360P_H264_360P => 0x88,
+
+    ARDRONE_CONFIG_VIDEO_MAX_FPS => 30,
+    ARDRONE_CONFIG_VIDEO_MIN_FPS => 1,
+
+    ARDRONE_CONFIG_VIDEO_VBC_MODE_DYNAMIC => 1,
 };
 
 
@@ -216,12 +233,20 @@ has 'iface' => (
     isa     => 'Str',
     default => 'wlan0',
 );
-
 has 'seq' => (
     is      => 'ro',
     isa     => 'Int',
     default => 0,
     writer  => '__set_seq',
+);
+has 'nav_collectors' => (
+    traits  => ['Array'],
+    is      => 'ro',
+    isa     => 'ArrayRef[UAV::Pilot::NavCollector]',
+    default => sub {[]},
+    handles => {
+        add_nav_collector => 'push',
+    },
 );
 
 has '_socket' => (
@@ -233,8 +258,22 @@ has '_nav_socket' => (
 );
 has 'last_nav_packet' => (
     is     => 'ro',
-    isa    => 'Maybe[UAV::Pilot::Driver::ARDrone::NavPacket]',
+    isa    => 'Maybe[UAV::Pilot::ARDrone::NavPacket]',
     writer => '_set_last_nav_packet',
+);
+has '_is_multi_cmd_mode' => (
+    is      => 'rw',
+    isa     => 'Bool',
+    default => 0,
+);
+has '_multi_cmds' => (
+    traits => ['Array'],
+    is     => 'ro',
+    isa    => 'ArrayRef[Str]',
+    handles => {
+        '_add_multi_cmd'    => 'push',
+        '_clear_multi_cmds' => 'clear',
+    },
 );
 
 
@@ -466,7 +505,7 @@ sub read_nav_packet
     my $in = $self->_nav_socket->recv( $buf, 4096 );
 
     if( $in ) {
-        my $nav_packet = UAV::Pilot::Driver::ARDrone::NavPacket->new({
+        my $nav_packet = UAV::Pilot::ARDrone::NavPacket->new({
             packet => $buf,
         });
         $self->_set_last_nav_packet( $nav_packet );
@@ -478,11 +517,33 @@ sub read_nav_packet
     return $ret;
 }
 
+sub multi_cmds
+{
+    my ($self, $sub) = @_;
+    $self->_is_multi_cmd_mode( 1 );
+
+    eval { $sub->($self) };
+    # Wait to check if something went wrong so we can cleanup first
+
+    $self->_is_multi_cmd_mode( 0 );
+    my @multi = @{ $self->_multi_cmds };
+    $self->_send_cmd( join( '', @multi ) );
+    $self->_clear_multi_cmds;
+
+    die $@ if $@;
+    return 1;
+}
+
 
 sub _send_cmd
 {
     my ($self, $cmd) = @_;
-    $self->_socket->send( $cmd );
+    if( $self->_is_multi_cmd_mode ) {
+        $self->_add_multi_cmd( $cmd );
+    }
+    else {
+        $self->_socket->send( $cmd );
+    }
     return 1;
 }
 
@@ -509,6 +570,10 @@ sub _init_nav_data
     my $port           = $self->ARDRONE_PORT_NAV_DATA;
     my $socket_type    = $self->ARDRONE_PORT_NAV_DATA_TYPE;
     my $iface          = $self->iface;
+    my $logger         = $self->_logger;
+
+    $logger->info( "Init nav data connection; iface [$iface], host [$host], "
+        . " multicast address [$multicast_addr], port [$port]" );
 
     # Init navigation data socket with the UAV
     my $nav_sock = IO::Socket::Multicast->new(
@@ -523,25 +588,46 @@ sub _init_nav_data
         or die "Could not subscribe to '$multicast_addr': $!\n";
     $nav_sock->send( 'foo' );
 
+    $logger->info( "Nav data connected, setting parameters" );
+
     # Set UAV to demo nav data mode, which sends most of the data we care about
     $self->at_config(
         $self->ARDRONE_CONFIG_GENERAL_NAVDATA_DEMO,
         $self->TRUE,
     );
 
+    $logger->debug( "Nav data set to demo mode" );
+
+    $logger->debug( "Waiting to receive first nav packet . . . " );
     # Receive first status packet from UAV
     my $buf = '';
     my $in = $nav_sock->recv( $buf, 1024 );
+    $logger->debug( "Received first nav packet" );
 
+    $logger->debug( "Setting nav data connection to non-blocking" );
     if(! defined $nav_sock->blocking( 0 ) ) {
         UAV::Pilot::IOException->throw({
             error => "Could not set nav socket to non-blocking IO: $!",
         });
     }
+    $logger->debug( "Nav data connection set to non-blocking" );
 
+    $logger->debug( "Parsing first nav packet" );
     $self->_nav_socket( $nav_sock );
+    $logger->debug( "First nav packet parsed" );
+
+    $logger->info( "Nav data init finished" );
     return 1;
 }
+
+
+after '_set_last_nav_packet' => sub {
+    my ($self, $nav_packet) = @_;
+    $self->_logger->info( "Received nav packet" );
+    $self->_logger->debug( "Output: " . $nav_packet->to_hex_string );
+    $_->got_new_nav_packet( $nav_packet ) for @{ $self->nav_collectors };
+    return 1;
+};
 
 
 no Moose;
@@ -552,11 +638,11 @@ __END__
 
 =head1 NAME
 
-  UAV::Pilot::Driver::ARDrone
+  UAV::Pilot::ARDrone::Driver
 
 =head1 SYNOPSIS
 
-    my $sender = UAV::Pilot::Driver::ARDrone->new({
+    my $sender = UAV::Pilot::ARDrone::Driver->new({
         host => '192.168.1.1',
     });
     $sender->connect;
@@ -654,6 +740,23 @@ Reset the communication watchdog.
 =head2 at_ctrl
 
 A useful but rather under-documented command for initing things like navigation data.
+
+=head2 add_nav_collector
+
+  add_nav_collector( $nav_collector )
+
+Add an object that does the C<UAV::Pilot::NavCollector> role.  It will be 
+passed a fresh nav packet each time it comes in.
+
+=head2 multi_cmds
+
+    $driver->multi_cmds( sub {
+        $driver->at_config_ids( 1234, 5678, 9012 );
+        $driver->at_config( 'foo' => 1 );
+        $driver->at_config( 'bar' => 2 );
+    });
+
+Sends multiple commands in a single packet.
 
 =head2 float_convert
 
@@ -785,7 +888,7 @@ This is a non-blocking IO operation.
     ARDRONE_CONFIG_VIDEO_BITRATE_CONTROL_MODE
     ARDRONE_CONFIG_VIDEO_BITRATE_STORAGE
     ARDRONE_CONFIG_VIDEO_VIDEO_CHANNEL
-    ARDRONE_CONFIG_VIDEO_ON_USB
+    ARDRONE_CONFIG_VIDEO_VIDEO_ON_USB
     ARDRONE_CONFIG_VIDEO_VIDEO_FILE_INDEX
 
 =head3 LEDS

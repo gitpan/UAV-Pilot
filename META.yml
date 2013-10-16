@@ -7,103 +7,94 @@ build_requires:
 configure_requires:
   Module::Build: 0.40
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.120630'
+generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.132140'
 license: bsd
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
 name: UAV-Pilot
 provides:
+  MockSDL:
+    file: lib/UAV/Pilot/SDL/Window/Mock.pm
   UAV::Pilot:
     file: lib/UAV/Pilot.pm
-    version: 0
+    version: 0.6
+  UAV::Pilot::ARDrone::Control:
+    file: lib/UAV/Pilot/ARDrone/Control.pm
+  UAV::Pilot::ARDrone::Control::Event:
+    file: lib/UAV/Pilot/ARDrone/Control/Event.pm
+  UAV::Pilot::ARDrone::Driver:
+    file: lib/UAV/Pilot/ARDrone/Driver.pm
+  UAV::Pilot::ARDrone::Driver::Mock:
+    file: lib/UAV/Pilot/ARDrone/Driver/Mock.pm
+  UAV::Pilot::ARDrone::NavPacket:
+    file: lib/UAV/Pilot/ARDrone/NavPacket.pm
+  UAV::Pilot::ARDrone::SDLNavOutput:
+    file: lib/UAV/Pilot/ARDrone/SDLNavOutput.pm
+  UAV::Pilot::ARDrone::Video:
+    file: lib/UAV/Pilot/ARDrone/Video.pm
+  UAV::Pilot::ARDrone::Video::Mock:
+    file: lib/UAV/Pilot/ARDrone/Video/Mock.pm
   UAV::Pilot::Commands:
     file: lib/UAV/Pilot/Commands.pm
-    version: 0
   UAV::Pilot::Control:
     file: lib/UAV/Pilot/Control.pm
-    version: 0
-  UAV::Pilot::Control::ARDrone:
-    file: lib/UAV/Pilot/Control/ARDrone.pm
-    version: 0
-  UAV::Pilot::Control::ARDrone::Event:
-    file: lib/UAV/Pilot/Control/ARDrone/Event.pm
-    version: 0
-  UAV::Pilot::Control::ARDrone::SDLNavOutput:
-    file: lib/UAV/Pilot/Control/ARDrone/SDLNavOutput.pm
-    version: 0
   UAV::Pilot::Driver:
     file: lib/UAV/Pilot/Driver.pm
-    version: 0
-  UAV::Pilot::Driver::ARDrone:
-    file: lib/UAV/Pilot/Driver/ARDrone.pm
-    version: 0
-  UAV::Pilot::Driver::ARDrone::Mock:
-    file: lib/UAV/Pilot/Driver/ARDrone/Mock.pm
-    version: 0
-  UAV::Pilot::Driver::ARDrone::NavPacket:
-    file: lib/UAV/Pilot/Driver/ARDrone/NavPacket.pm
-    version: 0
-  UAV::Pilot::Driver::ARDrone::Video:
-    file: lib/UAV/Pilot/Driver/ARDrone/Video.pm
-    version: 0
-  UAV::Pilot::Driver::ARDrone::Video::Mock:
-    file: lib/UAV/Pilot/Driver/ARDrone/Video/Mock.pm
-    version: 0
   UAV::Pilot::EasyEvent:
     file: lib/UAV/Pilot/EasyEvent.pm
-    version: 0
+  UAV::Pilot::EventHandler:
+    file: lib/UAV/Pilot/EventHandler.pm
+  UAV::Pilot::Events:
+    file: lib/UAV/Pilot/Events.pm
   UAV::Pilot::Exception:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::FileNotFoundException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::IOException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
+  UAV::Pilot::Logger:
+    file: lib/UAV/Pilot/Logger.pm
+  UAV::Pilot::NavCollector:
+    file: lib/UAV/Pilot/NavCollector.pm
+  UAV::Pilot::NavCollector::AckEvents:
+    file: lib/UAV/Pilot/NavCollector/AckEvents.pm
   UAV::Pilot::NavPacketException::BadHeader:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::NumberOutOfRangeException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
-  UAV::Pilot::SDL::EventHandler:
-    file: lib/UAV/Pilot/SDL/EventHandler.pm
-    version: 0
   UAV::Pilot::SDL::Events:
     file: lib/UAV/Pilot/SDL/Events.pm
-    version: 0
   UAV::Pilot::SDL::Joystick:
     file: lib/UAV/Pilot/SDL/Joystick.pm
-    version: 0
   UAV::Pilot::SDL::JoystickConverter:
     file: lib/UAV/Pilot/SDL/JoystickConverter.pm
-    version: 0
   UAV::Pilot::SDL::NavFeeder:
     file: lib/UAV/Pilot/SDL/NavFeeder.pm
-    version: 0
   UAV::Pilot::SDL::Video:
     file: lib/UAV/Pilot/SDL/Video.pm
-    version: 0
+  UAV::Pilot::SDL::VideoOverlay:
+    file: lib/UAV/Pilot/SDL/VideoOverlay.pm
+  UAV::Pilot::SDL::VideoOverlay::Reticle:
+    file: lib/UAV/Pilot/SDL/VideoOverlay/Reticle.pm
+  UAV::Pilot::SDL::Window:
+    file: lib/UAV/Pilot/SDL/Window.pm
+  UAV::Pilot::SDL::Window::Mock:
+    file: lib/UAV/Pilot/SDL/Window/Mock.pm
+  UAV::Pilot::SDL::WindowEventHandler:
+    file: lib/UAV/Pilot/SDL/WindowEventHandler.pm
   UAV::Pilot::Video::FileDump:
     file: lib/UAV/Pilot/Video/FileDump.pm
-    version: 0
   UAV::Pilot::Video::H264Decoder:
     file: lib/UAV/Pilot/Video/H264Decoder.pm
-    version: 0
   UAV::Pilot::Video::H264Handler:
     file: lib/UAV/Pilot/Video/H264Handler.pm
-    version: 0
   UAV::Pilot::Video::Mock::RawHandler:
     file: lib/UAV/Pilot/Video/Mock/RawHandler.pm
-    version: 0
   UAV::Pilot::Video::RawHandler:
     file: lib/UAV/Pilot/Video/RawHandler.pm
-    version: 0
   UAV::Pilot::VideoException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
 recommends:
   Getopt::Long: 0
   SDL: 2.5
@@ -116,6 +107,7 @@ requires:
   File::Spec: 0
   File::Temp: 0
   IO::Socket::Multicast: 0
+  Log::Log4perl: 0
   Math::Trig: 0
   Moose: 0
   MooseX::Event: 0
@@ -127,4 +119,5 @@ requires:
   perl: v5.12.0
 resources:
   license: http://opensource.org/licenses/bsd-license.php
-version: 0.5
+  repository: https://github.com/frezik/UAV-Pilot
+version: 0.6
