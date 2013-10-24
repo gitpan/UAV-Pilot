@@ -30,6 +30,7 @@ my $build = Module::Build->new(
     requires          => {
         perl                      => '>= 5.12.0',
         'namespace::autoclean'    => 0,
+        'Alien::ffmpeg'           => 0,
         'AnyEvent'                => 0,
         'AnyEvent::ReadLine::Gnu' => 0,
         'DateTime'                => 0,
@@ -42,6 +43,7 @@ my $build = Module::Build->new(
         'Math::Trig'              => 0,
         'Moose'                   => 0,
         'MooseX::Event'           => 0,
+        'String::CRC32'           => 0,
         'Test::More'              => 0,
         'Throwable'               => 0,
         'YAML'                    => 0,

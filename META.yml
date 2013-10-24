@@ -18,7 +18,7 @@ provides:
     file: lib/UAV/Pilot/SDL/Window/Mock.pm
   UAV::Pilot:
     file: lib/UAV/Pilot.pm
-    version: 0.6
+    version: 0.7
   UAV::Pilot::ARDrone::Control:
     file: lib/UAV/Pilot/ARDrone/Control.pm
   UAV::Pilot::ARDrone::Control::Event:
@@ -35,10 +35,18 @@ provides:
     file: lib/UAV/Pilot/ARDrone/Video.pm
   UAV::Pilot::ARDrone::Video::Mock:
     file: lib/UAV/Pilot/ARDrone/Video/Mock.pm
+  UAV::Pilot::ArdupilotPacketException::BadChecksum:
+    file: lib/UAV/Pilot/Exceptions.pm
+  UAV::Pilot::ArdupilotPacketException::BadHeader:
+    file: lib/UAV/Pilot/Exceptions.pm
   UAV::Pilot::Commands:
     file: lib/UAV/Pilot/Commands.pm
   UAV::Pilot::Control:
     file: lib/UAV/Pilot/Control.pm
+  UAV::Pilot::ControlHelicopter:
+    file: lib/UAV/Pilot/ControlHelicopter.pm
+  UAV::Pilot::ControlRover:
+    file: lib/UAV/Pilot/ControlRover.pm
   UAV::Pilot::Driver:
     file: lib/UAV/Pilot/Driver.pm
   UAV::Pilot::EasyEvent:
@@ -83,6 +91,8 @@ provides:
     file: lib/UAV/Pilot/SDL/Window/Mock.pm
   UAV::Pilot::SDL::WindowEventHandler:
     file: lib/UAV/Pilot/SDL/WindowEventHandler.pm
+  UAV::Pilot::Server:
+    file: lib/UAV/Pilot/Server.pm
   UAV::Pilot::Video::FileDump:
     file: lib/UAV/Pilot/Video/FileDump.pm
   UAV::Pilot::Video::H264Decoder:
@@ -95,10 +105,43 @@ provides:
     file: lib/UAV/Pilot/Video/RawHandler.pm
   UAV::Pilot::VideoException:
     file: lib/UAV/Pilot/Exceptions.pm
+  UAV::Pilot::WumpusRover::Driver:
+    file: lib/UAV/Pilot/WumpusRover/Driver.pm
+  UAV::Pilot::WumpusRover::Driver::Mock:
+    file: lib/UAV/Pilot/WumpusRover/Driver/Mock.pm
+  UAV::Pilot::WumpusRover::Packet:
+    file: lib/UAV/Pilot/WumpusRover/Packet.pm
+  UAV::Pilot::WumpusRover::Packet::Ack:
+    file: lib/UAV/Pilot/WumpusRover/Packet/Ack.pm
+  UAV::Pilot::WumpusRover::Packet::Heartbeat:
+    file: lib/UAV/Pilot/WumpusRover/Packet/Heartbeat.pm
+  UAV::Pilot::WumpusRover::Packet::RadioMaxes:
+    file: lib/UAV/Pilot/WumpusRover/Packet/RadioMaxes.pm
+  UAV::Pilot::WumpusRover::Packet::RadioMins:
+    file: lib/UAV/Pilot/WumpusRover/Packet/RadioMins.pm
+  UAV::Pilot::WumpusRover::Packet::RadioOutputs:
+    file: lib/UAV/Pilot/WumpusRover/Packet/RadioOutputs.pm
+  UAV::Pilot::WumpusRover::Packet::RadioTrims:
+    file: lib/UAV/Pilot/WumpusRover/Packet/RadioTrims.pm
+  UAV::Pilot::WumpusRover::Packet::RequestStartupMessage:
+    file: lib/UAV/Pilot/WumpusRover/Packet/RequestStartupMessage.pm
+  UAV::Pilot::WumpusRover::Packet::StartupMessage:
+    file: lib/UAV/Pilot/WumpusRover/Packet/StartupMessage.pm
+  UAV::Pilot::WumpusRover::PacketFactory:
+    file: lib/UAV/Pilot/WumpusRover/PacketFactory.pm
+  UAV::Pilot::WumpusRover::Server:
+    file: lib/UAV/Pilot/WumpusRover/Server.pm
+  UAV::Pilot::WumpusRover::Server::Backend:
+    file: lib/UAV/Pilot/WumpusRover/Server/Backend.pm
+  UAV::Pilot::WumpusRover::Server::Backend::Mock:
+    file: lib/UAV/Pilot/WumpusRover/Server/Backend/Mock.pm
+  UAV::Pilot::WumpusRover::Server::Mock:
+    file: lib/UAV/Pilot/WumpusRover/Server/Mock.pm
 recommends:
   Getopt::Long: 0
   SDL: 2.5
 requires:
+  Alien::ffmpeg: 0
   AnyEvent: 0
   AnyEvent::ReadLine::Gnu: 0
   DateTime: 0
@@ -111,6 +154,7 @@ requires:
   Math::Trig: 0
   Moose: 0
   MooseX::Event: 0
+  String::CRC32: 0
   Test::More: 0
   Throwable: 0
   XSLoader: 0
@@ -120,4 +164,4 @@ requires:
 resources:
   license: http://opensource.org/licenses/bsd-license.php
   repository: https://github.com/frezik/UAV-Pilot
-version: 0.6
+version: 0.7

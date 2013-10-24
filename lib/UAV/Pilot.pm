@@ -10,7 +10,7 @@ use Log::Log4perl;
 use constant DIST_NAME     => 'UAV-Pilot';
 use constant LOG_CONF_FILE => 'log4perl.conf';
 
-our $VERSION       = '0.6';
+our $VERSION       = '0.7';
 our $LOG_WAS_INITD = 0;
 
 
@@ -41,6 +41,20 @@ sub init_log
 
     Log::Log4perl::init( $log_conf );
     return 1;
+}
+
+sub checksum_fletcher8
+{
+    my ($class, @bytes) = @_;
+    my $ck_a = 0;
+    my $ck_b = 0;
+
+    foreach (@bytes) {
+        $ck_a = ($ck_a + $_)    & 0xFF;
+        $ck_b = ($ck_b + $ck_a) & 0xFF;
+    }
+
+    return ($ck_a, $ck_b);
 }
 
 sub convert_32bit_LE
