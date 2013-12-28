@@ -2,15 +2,17 @@ package UAV::Pilot::SDL::Joystick;
 use v5.14;
 use Moose;
 use namespace::autoclean;
-use SDL;
-use SDL::Joystick;
 use File::HomeDir;
 use YAML ();
 
-SDL::init_sub_system( SDL_INIT_JOYSTICK );
+my $IS_SDL_INIT_DONE = 0;
+######
+# NOTE: Need to be able to safely load this module without having SDL installed
+######
 
-use constant MAX_AXIS_INT      => 32767;
-use constant TIMER_INTERVAL    => 1 / 60;
+use constant MAX_AXIS_INT      => 32768;
+use constant MIN_AXIS_INT      => -32767;
+use constant EVENT_NAME        => 'uav_pilot_sdl_joystick';
 use constant DEFAULT_CONF_FILE => 'sdl_joystick.yml';
 use constant DEFAULT_CONF      => {
     joystick_num        => 0,
@@ -43,6 +45,7 @@ use constant BUTTON_ACTIONS => {
 
 
 with 'UAV::Pilot::EventHandler';
+with 'UAV::Pilot::Logger';
 
 has 'condvar' => (
     is  => 'ro',
@@ -109,13 +112,13 @@ has 'is_in_air' => (
         unset_is_in_air  => 'unset',
     },
 );
-has 'controller' => (
-    is  => 'ro',
-    isa => 'UAV::Pilot::Control',
-);
 has 'joystick' => (
     is  => 'ro',
     isa => 'SDL::Joystick',
+);
+has 'events' => (
+    is  => 'ro',
+    isa => 'UAV::Pilot::EasyEvent',
 );
 has '_prev_takeoff_btn_status' => (
     is  => 'rw',
@@ -136,6 +139,8 @@ has '_btn_prev_state' => (
 sub BUILDARGS
 {
     my ($self, $args) = @_;
+    $self->_one_time_init;
+
     my $new_args = $self->_process_args( $args );
 
     my $joystick = SDL::Joystick->new( $new_args->{joystick_num} );
@@ -151,37 +156,23 @@ sub process_events
     my ($self) = @_;
     SDL::Joystick::update();
     my $joystick = $self->joystick;
-    my $dev = $self->controller;
+    my @buttons = map {
+        $joystick->get_button( $_ )
+    } (0 .. $joystick->num_buttons - 1);
 
-    my $roll = $dev->convert_sdl_input( $joystick->get_axis(
-        $self->roll_axis ) * $self->roll_correction );
-    my $pitch = $dev->convert_sdl_input( $joystick->get_axis(
-        $self->pitch_axis ) * $self->pitch_correction );
-    my $yaw = $dev->convert_sdl_input( $joystick->get_axis(
-        $self->yaw_axis ) * $self->yaw_correction );
-    my $throttle = $dev->convert_sdl_input( $joystick->get_axis(
-        $self->throttle_axis ) * $self->throttle_correction );
-    my $takeoff_btn = $joystick->get_button( $self->takeoff_btn );
-
-    # Only takeoff/land after we let off the button
-    if( $self->_prev_takeoff_btn_status && ($takeoff_btn == 0) ) {
-        if( $self->is_in_air ) {
-            $self->unset_is_in_air;
-            $dev->land;
-        }
-        else {
-            $self->set_is_in_air;
-            $dev->takeoff;
-        }
-    }
-    $self->_prev_takeoff_btn_status( $takeoff_btn );
-
-    $self->_process_action_buttons( $joystick, $dev );
-
-    $dev->roll( $roll );
-    $dev->pitch( $pitch );
-    $dev->yaw( $yaw );
-    $dev->vert_speed( $throttle );
+    $self->_logger->info( 'Sending joystick event' );
+    $self->events->send_event( $self->EVENT_NAME, {
+        joystick_num => $self->joystick_num,
+        roll => $joystick->get_axis( $self->roll_axis )
+            * $self->roll_correction,
+        pitch => $joystick->get_axis( $self->pitch_axis )
+            * $self->pitch_correction,
+        yaw => $joystick->get_axis( $self->yaw_axis )
+            * $self->yaw_correction,
+        throttle => $joystick->get_axis( $self->throttle_axis )
+            * $self->throttle_correction,
+        buttons => \@buttons,
+    });
 
     return 1;
 }
@@ -212,6 +203,9 @@ sub _process_args
     my $conf_args = YAML::LoadFile( $conf_path );
 
     # Get the takeoff_land button special case
+    # TODO fetch these with key 'btn_action_map_$TYPE', where 
+    # '$TYPE' is the name of the UAV (e.g. WumpusRover or ARDrone)
+    # TODO handle toggle buttons
     foreach my $key (keys %{ $conf_args->{btn_action_map} }) {
         my $value = $conf_args->{btn_action_map}{$key};
         if( $value eq 'takeoff_land' ) {
@@ -224,11 +218,12 @@ sub _process_args
     my %new_args = (
         %$conf_args,
         condvar      => $args->{condvar},
-        controller   => $args->{controller},
+        events       => $args->{events},
     );
     return \%new_args;
 }
 
+# Currently unused
 sub _process_action_buttons
 {
     my ($self, $joystick, $dev) = @_;
@@ -250,6 +245,21 @@ sub _process_action_buttons
 }
 
 
+sub _one_time_init
+{
+    return 1 if $IS_SDL_INIT_DONE;
+
+    eval <<END;
+        use SDL;
+        use SDL::Joystick;
+        SDL::init_sub_system( SDL_INIT_JOYSTICK );
+END
+    die "Could not init SDL::Joystick: $@" if $@;
+
+    $IS_SDL_INIT_DONE = 1;
+    return 1;
+}
+
 no Moose;
 __PACKAGE__->meta->make_immutable;
 1;
@@ -262,19 +272,34 @@ __END__
 
 =head1 SYNOPSIS
 
-    my $control = UAV::Pilot::Controller::ARDrone->new( ... );
     my $condvar = AnyEvent->condvar;
+    my $events = UAV::Pilot::EasyEvent->new({
+        condvar => $condvar,
+    });
+    
+    my $control = UAV::Pilot::Controller::ARDrone->new( ... );
     my $joy = UAV::Pilot::SDL::Joystick->new({
         condvar    => $condvar,
-        controller => $control,
+        events     => $events,
         conf_path  => '/path/to/config.yml', # optional
     });
     
     my $sdl_events = UAV::Pilot::SDL::Events->new({
         condvar    => $condvar,
-        controller => $control,
     });
     $sdl_events->register( $joy );
+
+    # Capture joystick movements in EasyEvent
+    $events->add_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, sub {
+        my ($args) = @_;
+        my $joystick_num = $args->{joystick_num};
+        my $roll         = $args->{roll};
+        my $pitch        = $args->{pitch};
+        my $yaw          = $args->{yaw};
+        my $throttle     = $args->{throttle};
+        my @buttons      = @{ $args->{buttons} };
+        ...
+    });
 
 =head1 DESCRIPTION
 
@@ -288,6 +313,10 @@ the process other than C<kill -9>.
 Joystick configuration will be loaded from a C<YAML> config file.  You can find the 
 path with C<<UAV::Pilot->default_config_dir()>>.  If the file does not exist, it will 
 be created automatically.
+
+Joystick movements are sent over EasyEvent.  The event name is specified in 
+the C<EVENT_NAME> constant in this package.  See the SYNOPSIS for the 
+argument list.
 
 =head1 CONFIGURATION FILE
 

@@ -6,10 +6,7 @@ use File::Spec;
 
 use constant MOD_EXTENSION => '.uav';
 
-has 'device' => (
-    is   => 'ro',
-    does => 'UAV::Pilot::Control',
-);
+
 has 'lib_dirs' => (
     is      => 'ro',
     isa     => 'ArrayRef[Str]',
@@ -23,8 +20,16 @@ has 'condvar' => (
     is  => 'ro',
     isa => 'AnyEvent::CondVar',
 );
+has 'controller_callback_ardrone' => (
+    is  => 'ro',
+    isa => 'CodeRef',
+);
+has 'controller_callback_wumpusrover' => (
+    is  => 'ro',
+    isa => 'CodeRef',
+);
 
-our ($dev, $s);
+our $s;
 
 #
 # Sole command that can run without loading other libraries
@@ -46,8 +51,7 @@ sub run_cmd
     }
     return 1 unless defined $cmd;
 
-    $s   = $self;
-    $dev = $self->device;
+    $s = $self;
     eval $cmd;
     die $@ if $@;
 
@@ -60,6 +64,7 @@ sub load_lib
     my ($self, $mod_name, $args) = @_;
     my @search_dirs = @{ $self->lib_dirs };
     my $mod_file = $mod_name . $self->MOD_EXTENSION;
+    my $host = delete $$args{host};
 
     my $found = 0;
     foreach my $dir (@search_dirs) {
@@ -98,7 +103,7 @@ sub _compile_mod
 
     $pack = ref($self) unless defined $pack;
     if( my $call = $pack->can( 'uav_module_init' ) ) {
-        $call->( $pack, $args );
+        $call->( $pack, $self, $args );
 
         # Clear uav_module_init.  Would prefer a solution without eval( STRING ), 
         # though a symbol table manipulation method may be considered just as evil.
@@ -125,6 +130,8 @@ __END__
     my $device; # Some UAV::Pilot::Control instance, defined elsewhere
     my $cmds = UAV::Pilot::Commands->new({
         device => $device,
+        controller_callback_ardrone     => \&make_ardrone_controller,
+        controller_callback_wumpusrover => \&make_wumpusrover_controller,
     });
     
     $cmds->load_lib( 'ARDrone' );
@@ -141,10 +148,21 @@ REPL shells.
 =head2 new
 
     new({
-        device => $device
+        condvar                         => $cv,
+        controller_callback_ardrone     => sub { ... },
+        controller_callback_wumpusrover => sub { .. },
     })
 
-Constructor.  Takes a L<UAV::Pilot::Control> instance.
+Constructor.  The C<condvar> parameter is an C<AnyEvent::Condvar>.
+
+The C<controller_callback_*> parameters take a sub ref.  The subroutines take 
+a the parameters C<($cmd, $cv, $easy_event)>, where C<$cmd> is this 
+C<UAV::Pilot::Commands> instance, C<$cv> is the condvar passed above, and 
+C<$easy_event> is an C<UAV::Pilot::EasyEvent> instance.  It should return a 
+C<UAV::Pilot::Control> object of the associated type (generally one of the 
+C<*::Event> types with C<init_event_loop()> called).
+
+Note that this API is likely to change to a factory pattern in the near future.
 
 =head2 load_lib
 

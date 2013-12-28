@@ -2,8 +2,8 @@ package UAV::Pilot::WumpusRover::Server::Backend::Mock;
 use v5.14;
 use Moose;
 use namespace::autoclean;
+use UAV::Pilot::WumpusRover::Server::Backend;
 
-with 'UAV::Pilot::WumpusRover::Server::Backend';
 
 has 'started' => (
     is     => 'ro',
@@ -39,6 +39,89 @@ foreach (1..8) {
     );
 }
 
+has 'ch1_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch1_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'ch2_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch2_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'ch3_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch3_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'ch4_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch4_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'ch5_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch5_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'ch6_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch6_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'ch7_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch7_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'ch8_max_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 100,
+);
+has 'ch8_min_out' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+
+with 'UAV::Pilot::WumpusRover::Server::Backend';
+
 
 sub _packet_request_startup
 {
@@ -58,35 +141,17 @@ sub _packet_radio_trims
     return 1;
 }
 
-sub _packet_radio_mins
-{
-    my ($self, $packet) = @_;
-    foreach (1..8) {
-        my $fetch_method = 'ch' . $_ . '_min';
-        my $set_method   = '_set_ch' . $_ . '_min';
-        $self->$set_method( $packet->$fetch_method );
-    }
-    return 1;
-}
-
-sub _packet_radio_maxes
-{
-    my ($self, $packet) = @_;
-    foreach (1..8) {
-        my $fetch_method = 'ch' . $_ . '_max';
-        my $set_method   = '_set_ch' . $_ . '_max';
-        $self->$set_method( $packet->$fetch_method );
-    }
-    return 1;
-}
-
 sub _packet_radio_out
 {
-    my ($self, $packet) = @_;
+    my ($self, $packet, $server) = @_;
     foreach (1..8) {
         my $fetch_method = 'ch' . $_ . '_out';
         my $set_method   = '_set_ch' . $_ . '_out';
-        $self->$set_method( $packet->$fetch_method );
+        my $ch_map_method = '_map_ch' . $_ . '_value';
+
+        my $in_value = $packet->$fetch_method // 0;
+        my $out_value = $self->$ch_map_method( $server, $in_value );
+        $self->$set_method( $out_value );
     }
     return 1;
 }

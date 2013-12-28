@@ -4,6 +4,7 @@ use UAV::Pilot;
 use UAV::Pilot::ARDrone::Driver::Mock;
 use UAV::Pilot::ARDrone::Control;
 use UAV::Pilot::Commands;
+use AnyEvent;
 
 my $LIB_DIR = 'share';
 
@@ -12,11 +13,14 @@ my $ardrone = UAV::Pilot::ARDrone::Driver::Mock->new({
     host => 'localhost',
 });
 $ardrone->connect;
-my $repl = UAV::Pilot::Commands->new({
-    device => UAV::Pilot::ARDrone::Control->new({
-        driver => $ardrone,
-    }),
+my $controller = UAV::Pilot::ARDrone::Control->new({
+    driver => $ardrone,
 });
+my $repl = UAV::Pilot::Commands->new({
+    controller_callback_ardrone => sub { $controller },
+});
+my $cv = AnyEvent->condvar;
+
 
 $ardrone->saved_commands; # Flush saved commands from connect() call
 
@@ -26,8 +30,11 @@ eval {
 ok( $@, "No commands loaded into namespace yet" );
 
 $repl->add_lib_dir( UAV::Pilot->default_module_dir );
-$repl->load_lib( 'ARDrone' );
+$repl->load_lib( 'ARDrone', {
+    condvar => $cv,
+});
 pass( "ARDrone basic flight library loaded" );
+
 
 UAV::Pilot::Commands::run_cmd( 'takeoff;' );
 cmp_ok( scalar($ardrone->saved_commands), '==', 0,

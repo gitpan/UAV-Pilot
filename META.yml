@@ -7,7 +7,7 @@ build_requires:
 configure_requires:
   Module::Build: 0.40
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.132140'
+generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.132830'
 license: bsd
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -18,7 +18,7 @@ provides:
     file: lib/UAV/Pilot/SDL/Window/Mock.pm
   UAV::Pilot:
     file: lib/UAV/Pilot.pm
-    version: 0.7
+    version: 0.8
   UAV::Pilot::ARDrone::Control:
     file: lib/UAV/Pilot/ARDrone/Control.pm
   UAV::Pilot::ARDrone::Control::Event:
@@ -75,8 +75,6 @@ provides:
     file: lib/UAV/Pilot/SDL/Events.pm
   UAV::Pilot::SDL::Joystick:
     file: lib/UAV/Pilot/SDL/Joystick.pm
-  UAV::Pilot::SDL::JoystickConverter:
-    file: lib/UAV/Pilot/SDL/JoystickConverter.pm
   UAV::Pilot::SDL::NavFeeder:
     file: lib/UAV/Pilot/SDL/NavFeeder.pm
   UAV::Pilot::SDL::Video:
@@ -105,6 +103,12 @@ provides:
     file: lib/UAV/Pilot/Video/RawHandler.pm
   UAV::Pilot::VideoException:
     file: lib/UAV/Pilot/Exceptions.pm
+  UAV::Pilot::WumpusRover:
+    file: lib/UAV/Pilot/WumpusRover.pm
+  UAV::Pilot::WumpusRover::Control:
+    file: lib/UAV/Pilot/WumpusRover/Control.pm
+  UAV::Pilot::WumpusRover::Control::Event:
+    file: lib/UAV/Pilot/WumpusRover/Control/Event.pm
   UAV::Pilot::WumpusRover::Driver:
     file: lib/UAV/Pilot/WumpusRover/Driver.pm
   UAV::Pilot::WumpusRover::Driver::Mock:
@@ -135,10 +139,13 @@ provides:
     file: lib/UAV/Pilot/WumpusRover/Server/Backend.pm
   UAV::Pilot::WumpusRover::Server::Backend::Mock:
     file: lib/UAV/Pilot/WumpusRover/Server/Backend/Mock.pm
+  UAV::Pilot::WumpusRover::Server::Backend::RaspberryPiI2C:
+    file: lib/UAV/Pilot/WumpusRover/Server/Backend/RaspberryPiI2C.pm
   UAV::Pilot::WumpusRover::Server::Mock:
     file: lib/UAV/Pilot/WumpusRover/Server/Mock.pm
 recommends:
   Getopt::Long: 0
+  HiPi: 0
   SDL: 2.5
 requires:
   Alien::ffmpeg: 0
@@ -157,11 +164,12 @@ requires:
   String::CRC32: 0
   Test::More: 0
   Throwable: 0
+  Tie::IxHash: 0
   XSLoader: 0
   YAML: 0
   namespace::autoclean: 0
-  perl: v5.12.0
+  perl: v5.14.0
 resources:
   license: http://opensource.org/licenses/bsd-license.php
   repository: https://github.com/frezik/UAV-Pilot
-version: 0.7
+version: 0.8

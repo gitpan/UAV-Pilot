@@ -4,7 +4,7 @@
       "Timm Murray <tmurray@wumpus-cave.net>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.132140",
+   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.132830",
    "license" : [
       "bsd"
    ],
@@ -27,6 +27,7 @@
       "runtime" : {
          "recommends" : {
             "Getopt::Long" : "0",
+            "HiPi" : "0",
             "SDL" : "2.5"
          },
          "requires" : {
@@ -46,10 +47,11 @@
             "String::CRC32" : "0",
             "Test::More" : "0",
             "Throwable" : "0",
+            "Tie::IxHash" : "0",
             "XSLoader" : "0",
             "YAML" : "0",
             "namespace::autoclean" : "0",
-            "perl" : "v5.12.0"
+            "perl" : "v5.14.0"
          }
       }
    },
@@ -59,7 +61,7 @@
       },
       "UAV::Pilot" : {
          "file" : "lib/UAV/Pilot.pm",
-         "version" : "0.7"
+         "version" : "0.8"
       },
       "UAV::Pilot::ARDrone::Control" : {
          "file" : "lib/UAV/Pilot/ARDrone/Control.pm"
@@ -145,9 +147,6 @@
       "UAV::Pilot::SDL::Joystick" : {
          "file" : "lib/UAV/Pilot/SDL/Joystick.pm"
       },
-      "UAV::Pilot::SDL::JoystickConverter" : {
-         "file" : "lib/UAV/Pilot/SDL/JoystickConverter.pm"
-      },
       "UAV::Pilot::SDL::NavFeeder" : {
          "file" : "lib/UAV/Pilot/SDL/NavFeeder.pm"
       },
@@ -189,6 +188,15 @@
       },
       "UAV::Pilot::VideoException" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm"
+      },
+      "UAV::Pilot::WumpusRover" : {
+         "file" : "lib/UAV/Pilot/WumpusRover.pm"
+      },
+      "UAV::Pilot::WumpusRover::Control" : {
+         "file" : "lib/UAV/Pilot/WumpusRover/Control.pm"
+      },
+      "UAV::Pilot::WumpusRover::Control::Event" : {
+         "file" : "lib/UAV/Pilot/WumpusRover/Control/Event.pm"
       },
       "UAV::Pilot::WumpusRover::Driver" : {
          "file" : "lib/UAV/Pilot/WumpusRover/Driver.pm"
@@ -235,6 +243,9 @@
       "UAV::Pilot::WumpusRover::Server::Backend::Mock" : {
          "file" : "lib/UAV/Pilot/WumpusRover/Server/Backend/Mock.pm"
       },
+      "UAV::Pilot::WumpusRover::Server::Backend::RaspberryPiI2C" : {
+         "file" : "lib/UAV/Pilot/WumpusRover/Server/Backend/RaspberryPiI2C.pm"
+      },
       "UAV::Pilot::WumpusRover::Server::Mock" : {
          "file" : "lib/UAV/Pilot/WumpusRover/Server/Mock.pm"
       }
@@ -248,5 +259,5 @@
          "url" : "https://github.com/frezik/UAV-Pilot"
       }
    },
-   "version" : "0.7"
+   "version" : "0.8"
 }

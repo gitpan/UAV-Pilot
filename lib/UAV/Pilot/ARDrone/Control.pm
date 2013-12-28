@@ -37,6 +37,12 @@ has '_did_set_multiconfig' => (
     isa     => 'Bool',
     default => 0,
 );
+has 'in_air' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0,
+    writer  => '_set_in_air',
+);
 
 with 'UAV::Pilot::Logger';
 
@@ -58,6 +64,7 @@ sub takeoff
 {
     my ($self) = @_;
     $self->driver->at_ref( 1, 0 );
+    $self->_set_in_air( 1 );
     return 1;
 }
 
@@ -65,6 +72,8 @@ sub land
 {
     my ($self) = @_;
     $self->driver->at_ref( 0, 0 );
+    $self->_set_in_air( 0 );
+    return 1;
 }
 
 sub pitch
@@ -346,15 +355,6 @@ sub hover
     }
 }
 
-sub convert_sdl_input
-{
-    my ($self, $num) = @_;
-    my $float = $num / $self->MAX_AXIS_INT;
-    $float = 1.0 if $float > 1.0;
-    $float = -1.0 if $float < -1.0;
-    return $float;
-}
-
 sub start_userbox_nav_data
 {
     my ($self) = @_;
@@ -482,7 +482,6 @@ sub _generate_session_id
     my $hex_id = sprintf '%x', $id;
     return $hex_id;
 }
-
 
 
 no Moose;

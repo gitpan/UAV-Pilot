@@ -3,6 +3,7 @@ use v5.14;
 use Moose;
 use namespace::autoclean;
 use AnyEvent;
+use UAV::Pilot::SDL::Joystick;
 
 extends 'UAV::Pilot::ARDrone::Control';
 
@@ -33,6 +34,22 @@ has 'cur_vert_speed' => (
     default => 0,
     writer  => 'vert_speed',
 );
+has 'joystick_num' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'joystick_takeoff_btn' => (
+    is      => 'ro',
+    isa     => 'Int',
+    default => 0,
+);
+has 'joystick_takeoff_btn_last_state' => (
+    is      => 'ro',
+    isa     => 'Bool',
+    default => 0,
+    writer  => '_set_joystick_takeoff_btn_last_state',
+);
 
 with 'UAV::Pilot::SDL::NavFeeder';
 
@@ -40,10 +57,8 @@ with 'UAV::Pilot::SDL::NavFeeder';
 
 sub init_event_loop
 {
-    my ($self) = @_;
+    my ($self, $cv, $event) = @_;
     $self->hover;
-
-    my $cv = AnyEvent->condvar;
 
     my $control_timer; $control_timer = AnyEvent->timer(
         after    => 0.1,
@@ -74,7 +89,11 @@ sub init_event_loop
         },
     );
 
-    return $cv;
+    $event->add_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, sub {
+        my (@args) = @_;
+        return $self->_process_sdl_input( @args );
+    });
+    return 1;
 }
 
 sub hover
@@ -87,6 +106,43 @@ sub hover
         vert_speed
     };
     return 1;
+}
+
+sub _process_sdl_input
+{
+    my ($self, $args) = @_;
+    return 0 if $args->{joystick_num} != $self->joystick_num;
+    my $takeoff_btn_cur_state = $args->{buttons}->[$self->joystick_takeoff_btn];
+
+    $self->roll(       $self->_convert_sdl_input( $args->{roll}     ) );
+    $self->pitch(      $self->_convert_sdl_input( $args->{pitch}    ) );
+    $self->yaw(        $self->_convert_sdl_input( $args->{yaw}      ) );
+    $self->vert_speed( $self->_convert_sdl_input( $args->{throttle} ) );
+
+    # Toggle takeoff btn
+    if(
+        (! $takeoff_btn_cur_state) &&
+        ($self->joystick_takeoff_btn_last_state)
+    ) {
+        if( $self->in_air ) {
+            $self->land;
+        }
+        else {
+            $self->takeoff;
+        }
+    }
+    $self->_set_joystick_takeoff_btn_last_state( $takeoff_btn_cur_state );
+
+    return 1;
+}
+
+sub _convert_sdl_input
+{
+    my ($self, $num) = @_;
+    my $float = $num / UAV::Pilot::SDL::Joystick->MAX_AXIS_INT;
+    $float = 1.0 if $float > 1.0;
+    $float = -1.0 if $float < -1.0;
+    return $float;
 }
 
 
@@ -102,14 +158,21 @@ __END__
 
 =head1 SYNOPSIS
 
+    my $cv = AnyEvent->condvar;
+    my $event = UAV::Pilot::EasyEvent->new({
+        condvar => $cv,
+    });
+    
     my $driver = UAV::Pilot::Driver::ARDrone->new( ... );
     $driver->connect;
     my $dev = UAV::Pilot::Control::ARDrone::Event->new({
-        driver => $driver,
+        driver               => $driver,
+        joystick_num         => 0,
+        joystick_takeoff_btn => 3,
     });
-    
-    my $cv = $uav->init_event_loop;
-    $cv->pitch( -0.8 );
+    $uav->init_event_loop( $cv, $event );
+
+    $dev->pitch( -0.8 );
     $cv->recv; # Will now pitch forward until you kill the process
 
 =head1 DESCRIPTION
@@ -122,8 +185,12 @@ an event loop, this module handles the timing for you.
 
 =head2 init_event_loop
 
-Sets up the event loop and returns the AnyEvent::CondVar.  You will need to call C<recv()> 
-on that condvar to start the event loop running.
+    init_event_loop( $cv, $event )
+
+Sets up the event loop.  Takes C<$cv> (an C<AnyEvent::Condvar>) and C<$event> 
+(a C<UAV::Pilot::EasyEvent).
+
+Will listen for joystick events.
 
 =head2 hover
 

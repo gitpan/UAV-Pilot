@@ -1,20 +1,23 @@
-Version 0.8
------------
-* Send multiconfig commands in order to set video display size and fps
-* Implement WumpusRover
-* Document
-    * UAV::Pilot::ControlHelicopter
-    * UAV::Pilot::ControlRover
-    * UAV::Pilot::WumpusRover::Driver
-    * UAV::Pilot::WumpusRover::PacketFactory
-    * UAV::Pilot::WumpusRover::Packet
-    * UAV::Pilot::Server
-    * UAV::Pilot::WumpusRover::Server
-    * UAV::Pilot::WumpusRover::Backend
-
-
 Version 0.9
 -----------
+* *::Control::Event modules should have their own role.
+* Joystick
+    * Support more than one joystick
+    * Map toggle buttons using config
+* WumpusRover Server
+    * Send video stream
+* WumpusRover Client
+    * Send min/max radio settings packets
+    * Process video stream
+* Fix WumpusRover packet parsing for when the data we have is longer than a 
+  single packet
+    * Only process as much data as we need
+* Use Devel::CheckLib to look for ffmpeg 
+    * Replace Alien::ffmpeg?
+* Modify uav_joystick (and other bin/uav_*) to use share/ libraries
+* For bin/uav;
+    * Different libraries will need to be loaded with a different host
+    * Use a factory pattern for init'ing the drivers and controllers
 * UAV::Pilot::SDL::WindowEventHandlers should be handed an SDL::Surface 
   to draw on
 * SDL2 w/Streaming pixels for video?  Or OpenGL?
@@ -28,3 +31,7 @@ Version 0.9
 * bin/uav uses a Factory object to create the Driver and Control objects
 * bin/uav loads a config file for loading modules by default
 * Build script checks for ffmpeg being installed
+
+Version ???
+-----------
+* Send multiconfig commands in order to set video display size and fps
