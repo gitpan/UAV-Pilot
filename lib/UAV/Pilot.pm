@@ -10,7 +10,7 @@ use Log::Log4perl;
 use constant DIST_NAME     => 'UAV-Pilot';
 use constant LOG_CONF_FILE => 'log4perl.conf';
 
-our $VERSION       = '0.8';
+our $VERSION       = '0.9';
 our $LOG_WAS_INITD = 0;
 
 
@@ -74,6 +74,23 @@ sub convert_16bit_LE
     return $val;
 }
 
+sub convert_32bit_BE
+{
+    my ($class, @bytes) = @_;
+    my $val = ($bytes[0] << 24)
+        | ($bytes[1] << 16)
+        | ($bytes[2] << 8)
+        | $bytes[3];
+    return $val;
+}
+
+sub convert_16bit_BE
+{
+    my ($class, @bytes) = @_;
+    my $val = ($bytes[0] << 8) | $bytes[1];
+    return $val;
+}
+
 sub _make_default_log_conf
 {
     my ($class, $out_file) = @_;
@@ -103,15 +120,15 @@ __END__
 
 =head1 SYNOPSIS
 
-  use UAV::Pilot::Driver::ARDrone;
-  use UAV::Pilot::Control::ARDrone;
+  use UAV::Pilot::ARDrone::Driver;
+  use UAV::Pilot::ARDrone::Control;
   
-  my $ardrone = UAV::Pilot::Driver::ARDrone->new({
+  my $ardrone = UAV::Pilot::ARDrone::Driver->new({
       host => '192.168.1.1',
   });
   $ardrone->connect;
   
-  my $dev = UAV::Pilot::Control::ARDrone->new({
+  my $dev = UAV::Pilot::ARDrone::Control->new({
       sender => $ardrone,
   });
   

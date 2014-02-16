@@ -4,7 +4,7 @@
       "Timm Murray <tmurray@wumpus-cave.net>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.132830",
+   "generated_by" : "Module::Build version 0.4205",
    "license" : [
       "bsd"
    ],
@@ -14,21 +14,16 @@
    },
    "name" : "UAV-Pilot",
    "prereqs" : {
-      "build" : {
-         "requires" : {
-            "ExtUtils::CBuilder" : "0"
-         }
-      },
       "configure" : {
          "requires" : {
-            "Module::Build" : "0.40"
+            "Module::Build" : "0.42"
          }
       },
       "runtime" : {
          "recommends" : {
             "Getopt::Long" : "0",
-            "HiPi" : "0",
-            "SDL" : "2.5"
+            "UAV::Pilot::SDL" : "0",
+            "UAV::Pilot::Video::Ffmpeg" : "0"
          },
          "requires" : {
             "Alien::ffmpeg" : "0",
@@ -47,50 +42,24 @@
             "String::CRC32" : "0",
             "Test::More" : "0",
             "Throwable" : "0",
-            "Tie::IxHash" : "0",
-            "XSLoader" : "0",
             "YAML" : "0",
             "namespace::autoclean" : "0",
-            "perl" : "v5.14.0"
+            "perl" : ">= 5.14.0"
          }
       }
    },
    "provides" : {
-      "MockSDL" : {
-         "file" : "lib/UAV/Pilot/SDL/Window/Mock.pm"
-      },
       "UAV::Pilot" : {
          "file" : "lib/UAV/Pilot.pm",
-         "version" : "0.8"
-      },
-      "UAV::Pilot::ARDrone::Control" : {
-         "file" : "lib/UAV/Pilot/ARDrone/Control.pm"
-      },
-      "UAV::Pilot::ARDrone::Control::Event" : {
-         "file" : "lib/UAV/Pilot/ARDrone/Control/Event.pm"
-      },
-      "UAV::Pilot::ARDrone::Driver" : {
-         "file" : "lib/UAV/Pilot/ARDrone/Driver.pm"
-      },
-      "UAV::Pilot::ARDrone::Driver::Mock" : {
-         "file" : "lib/UAV/Pilot/ARDrone/Driver/Mock.pm"
-      },
-      "UAV::Pilot::ARDrone::NavPacket" : {
-         "file" : "lib/UAV/Pilot/ARDrone/NavPacket.pm"
-      },
-      "UAV::Pilot::ARDrone::SDLNavOutput" : {
-         "file" : "lib/UAV/Pilot/ARDrone/SDLNavOutput.pm"
-      },
-      "UAV::Pilot::ARDrone::Video" : {
-         "file" : "lib/UAV/Pilot/ARDrone/Video.pm"
-      },
-      "UAV::Pilot::ARDrone::Video::Mock" : {
-         "file" : "lib/UAV/Pilot/ARDrone/Video/Mock.pm"
+         "version" : "0.9"
       },
       "UAV::Pilot::ArdupilotPacketException::BadChecksum" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm"
       },
       "UAV::Pilot::ArdupilotPacketException::BadHeader" : {
+         "file" : "lib/UAV/Pilot/Exceptions.pm"
+      },
+      "UAV::Pilot::CommandNotFoundException" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm"
       },
       "UAV::Pilot::Commands" : {
@@ -141,41 +110,11 @@
       "UAV::Pilot::NumberOutOfRangeException" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm"
       },
-      "UAV::Pilot::SDL::Events" : {
-         "file" : "lib/UAV/Pilot/SDL/Events.pm"
-      },
-      "UAV::Pilot::SDL::Joystick" : {
-         "file" : "lib/UAV/Pilot/SDL/Joystick.pm"
-      },
-      "UAV::Pilot::SDL::NavFeeder" : {
-         "file" : "lib/UAV/Pilot/SDL/NavFeeder.pm"
-      },
-      "UAV::Pilot::SDL::Video" : {
-         "file" : "lib/UAV/Pilot/SDL/Video.pm"
-      },
-      "UAV::Pilot::SDL::VideoOverlay" : {
-         "file" : "lib/UAV/Pilot/SDL/VideoOverlay.pm"
-      },
-      "UAV::Pilot::SDL::VideoOverlay::Reticle" : {
-         "file" : "lib/UAV/Pilot/SDL/VideoOverlay/Reticle.pm"
-      },
-      "UAV::Pilot::SDL::Window" : {
-         "file" : "lib/UAV/Pilot/SDL/Window.pm"
-      },
-      "UAV::Pilot::SDL::Window::Mock" : {
-         "file" : "lib/UAV/Pilot/SDL/Window/Mock.pm"
-      },
-      "UAV::Pilot::SDL::WindowEventHandler" : {
-         "file" : "lib/UAV/Pilot/SDL/WindowEventHandler.pm"
-      },
       "UAV::Pilot::Server" : {
          "file" : "lib/UAV/Pilot/Server.pm"
       },
       "UAV::Pilot::Video::FileDump" : {
          "file" : "lib/UAV/Pilot/Video/FileDump.pm"
-      },
-      "UAV::Pilot::Video::H264Decoder" : {
-         "file" : "lib/UAV/Pilot/Video/H264Decoder.pm"
       },
       "UAV::Pilot::Video::H264Handler" : {
          "file" : "lib/UAV/Pilot/Video/H264Handler.pm"
@@ -188,66 +127,6 @@
       },
       "UAV::Pilot::VideoException" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm"
-      },
-      "UAV::Pilot::WumpusRover" : {
-         "file" : "lib/UAV/Pilot/WumpusRover.pm"
-      },
-      "UAV::Pilot::WumpusRover::Control" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Control.pm"
-      },
-      "UAV::Pilot::WumpusRover::Control::Event" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Control/Event.pm"
-      },
-      "UAV::Pilot::WumpusRover::Driver" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Driver.pm"
-      },
-      "UAV::Pilot::WumpusRover::Driver::Mock" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Driver/Mock.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::Ack" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/Ack.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::Heartbeat" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/Heartbeat.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::RadioMaxes" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/RadioMaxes.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::RadioMins" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/RadioMins.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::RadioOutputs" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/RadioOutputs.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::RadioTrims" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/RadioTrims.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::RequestStartupMessage" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/RequestStartupMessage.pm"
-      },
-      "UAV::Pilot::WumpusRover::Packet::StartupMessage" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Packet/StartupMessage.pm"
-      },
-      "UAV::Pilot::WumpusRover::PacketFactory" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/PacketFactory.pm"
-      },
-      "UAV::Pilot::WumpusRover::Server" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Server.pm"
-      },
-      "UAV::Pilot::WumpusRover::Server::Backend" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Server/Backend.pm"
-      },
-      "UAV::Pilot::WumpusRover::Server::Backend::Mock" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Server/Backend/Mock.pm"
-      },
-      "UAV::Pilot::WumpusRover::Server::Backend::RaspberryPiI2C" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Server/Backend/RaspberryPiI2C.pm"
-      },
-      "UAV::Pilot::WumpusRover::Server::Mock" : {
-         "file" : "lib/UAV/Pilot/WumpusRover/Server/Mock.pm"
       }
    },
    "release_status" : "stable",
@@ -259,5 +138,5 @@
          "url" : "https://github.com/frezik/UAV-Pilot"
       }
    },
-   "version" : "0.8"
+   "version" : "0.9"
 }
