@@ -1,3 +1,26 @@
+# Copyright (c) 2014  Timm Murray
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without 
+# modification, are permitted provided that the following conditions are met:
+# 
+#     * Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright 
+#       notice, this list of conditions and the following disclaimer in the 
+#       documentation and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+# POSSIBILITY OF SUCH DAMAGE.
 package UAV::Pilot::Commands;
 use v5.14;
 use Moose;
@@ -28,6 +51,15 @@ has 'controller_callback_wumpusrover' => (
     is  => 'ro',
     isa => 'CodeRef',
 );
+has 'quit_subs' => (
+    traits  => ['Array'],
+    is      => 'ro',
+    isa     => 'ArrayRef[CodeRef]',
+    default => sub {[]},
+    handles => {
+        '_push_quit_sub' => 'push',
+    },
+);
 
 our $s;
 
@@ -55,6 +87,13 @@ sub run_cmd
     eval $cmd;
     die $@ if $@;
 
+    return 1;
+}
+
+sub quit
+{
+    my ($self) = @_;
+    $_->() for @{ $self->{quit_subs} };
     return 1;
 }
 
@@ -109,6 +148,10 @@ sub _compile_mod
         # though a symbol table manipulation method may be considered just as evil.
         my $del_str = 'delete $' . $pack . '::{uav_module_init}';
         eval $del_str;
+    }
+
+    if( my $quit_call = $pack->can( 'uav_module_quit' ) ) {
+        $self->_push_quit_sub( $quit_call );
     }
 
     return 1;
@@ -238,3 +281,5 @@ parens.
 The method C<uav_module_init()> is called with the package name as the first argument.  
 Subsquent arguments will be the hashref passed to C<load()/load_lib()>.  After being called,
 this sub will be deleted from the package.
+
+The method C<uav_module_quit()> is called when the REPL is closing.

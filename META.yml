@@ -2,120 +2,95 @@
 abstract: 'Control UAVs'
 author:
   - 'Timm Murray <tmurray@wumpus-cave.net>'
-build_requires: {}
+build_requires:
+  Test::Pod: '0'
 configure_requires:
-  Module::Build: 0.42
+  Module::Build: '0.42'
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4205, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Module::Build version 0.4205, CPAN::Meta::Converter version 2.140630'
 license: bsd
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+  version: '1.4'
 name: UAV-Pilot
 provides:
   UAV::Pilot:
     file: lib/UAV/Pilot.pm
-    version: 0.9
+    version: '0.10'
   UAV::Pilot::ArdupilotPacketException::BadChecksum:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::ArdupilotPacketException::BadHeader:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::CommandNotFoundException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::Commands:
     file: lib/UAV/Pilot/Commands.pm
-    version: 0
   UAV::Pilot::Control:
     file: lib/UAV/Pilot/Control.pm
-    version: 0
   UAV::Pilot::ControlHelicopter:
     file: lib/UAV/Pilot/ControlHelicopter.pm
-    version: 0
   UAV::Pilot::ControlRover:
     file: lib/UAV/Pilot/ControlRover.pm
-    version: 0
   UAV::Pilot::Driver:
     file: lib/UAV/Pilot/Driver.pm
-    version: 0
   UAV::Pilot::EasyEvent:
     file: lib/UAV/Pilot/EasyEvent.pm
-    version: 0
   UAV::Pilot::EventHandler:
     file: lib/UAV/Pilot/EventHandler.pm
-    version: 0
   UAV::Pilot::Events:
     file: lib/UAV/Pilot/Events.pm
-    version: 0
   UAV::Pilot::Exception:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::FileNotFoundException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::IOException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::Logger:
     file: lib/UAV/Pilot/Logger.pm
-    version: 0
   UAV::Pilot::NavCollector:
     file: lib/UAV/Pilot/NavCollector.pm
-    version: 0
   UAV::Pilot::NavCollector::AckEvents:
     file: lib/UAV/Pilot/NavCollector/AckEvents.pm
-    version: 0
   UAV::Pilot::NavPacketException::BadHeader:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::NumberOutOfRangeException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
   UAV::Pilot::Server:
     file: lib/UAV/Pilot/Server.pm
-    version: 0
   UAV::Pilot::Video::FileDump:
     file: lib/UAV/Pilot/Video/FileDump.pm
-    version: 0
   UAV::Pilot::Video::H264Handler:
     file: lib/UAV/Pilot/Video/H264Handler.pm
-    version: 0
   UAV::Pilot::Video::Mock::RawHandler:
     file: lib/UAV/Pilot/Video/Mock/RawHandler.pm
-    version: 0
   UAV::Pilot::Video::RawHandler:
     file: lib/UAV/Pilot/Video/RawHandler.pm
-    version: 0
   UAV::Pilot::VideoException:
     file: lib/UAV/Pilot/Exceptions.pm
-    version: 0
 recommends:
-  Getopt::Long: 0
-  UAV::Pilot::SDL: 0
-  UAV::Pilot::Video::Ffmpeg: 0
+  Getopt::Long: '0'
+  UAV::Pilot::SDL: '0'
+  UAV::Pilot::Video::Ffmpeg: '0'
 requires:
-  Alien::ffmpeg: 0
-  AnyEvent: 0
-  AnyEvent::ReadLine::Gnu: 0
-  DateTime: 0
-  File::HomeDir: 0
-  File::ShareDir: 1.00
-  File::Spec: 0
-  File::Temp: 0
-  IO::Socket::Multicast: 0
-  Log::Log4perl: 0
-  Math::Trig: 0
-  Moose: 0
-  MooseX::Event: 0
-  String::CRC32: 0
-  Test::More: 0
-  Throwable: 0
-  YAML: 0
-  namespace::autoclean: 0
+  AnyEvent: '0'
+  AnyEvent::ReadLine::Gnu: '0'
+  DateTime: '0'
+  File::HomeDir: '0'
+  File::ShareDir: '1.00'
+  File::Spec: '0'
+  File::Temp: '0'
+  IO::Socket::Multicast: '0'
+  Log::Log4perl: '0'
+  Math::Trig: '0'
+  Moose: '0'
+  MooseX::Event: '0'
+  String::CRC32: '0'
+  Test::More: '0'
+  Throwable: '0'
+  YAML: '0'
+  namespace::autoclean: '0'
   perl: v5.14.0
 resources:
-  license: http://opensource.org/licenses/bsd-license.php
+  license: http://opensource.org/licenses/BSD-3-Clause
   repository: https://github.com/frezik/UAV-Pilot
-version: 0.9
+version: '0.10'

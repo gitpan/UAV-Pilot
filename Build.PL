@@ -12,7 +12,6 @@ my $build = Module::Build->new(
     requires          => {
         perl                                => '>= 5.14.0',
         'namespace::autoclean'              => 0,
-        'Alien::ffmpeg'                     => 0,
         'AnyEvent'                          => 0,
         'AnyEvent::ReadLine::Gnu'           => 0,
         'DateTime'                          => 0,
@@ -29,6 +28,9 @@ my $build = Module::Build->new(
         'Test::More'                        => 0,
         'Throwable'                         => 0,
         'YAML'                              => 0,
+    },
+    test_requires => {
+        'Test::Pod' => 0,
     },
     recommends => {
         'Getopt::Long'              => 0,

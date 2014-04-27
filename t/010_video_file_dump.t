@@ -1,4 +1,3 @@
-#!/usr/bin/perl
 # Copyright (c) 2014  Timm Murray
 # All rights reserved.
 # 
@@ -22,30 +21,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
+use Test::More tests => 5;
 use v5.14;
-use warnings;
-use UAV::Pilot::ARDrone::Driver;
+use UAV::Pilot::Video::FileDump;
+use File::Temp ();
+use Test::Moose;
 
-my $HOST        = shift || '192.168.1.1';
-my $PORT        = shift || UAV::Pilot::ARDrone::Driver->ARDRONE_PORT_CTRL;
-my $SOCKET_TYPE = UAV::Pilot::ARDrone::Driver->ARDRONE_PORT_CTRL_TYPE;
+my ($OUTPUT_FH, $OUTPUT_FILE) = File::Temp::tempfile( 'uav_pilot_file_dump.XXXXXX',
+    UNLINK => 1,
+);
 
-# This all should work, but doesn't.  Seems that the current AR drone is bugged.  See:
-#
-# https://projects.ardrone.org/boards/1/topics/show/5216
-# https://projects.ardrone.org/boards/1/topics/show/3453
-#
-local $| = 1; # Autoflush
+my $dump = UAV::Pilot::Video::FileDump->new({
+    fh => $OUTPUT_FH,
+});
+isa_ok( $dump => 'UAV::Pilot::Video::FileDump' );
+does_ok( $dump => 'UAV::Pilot::Video::H264Handler' );
+cmp_ok( $dump->_frame_count, '==', 0, "Frame count is zero" );
 
-my $in = IO::Socket::INET->new(
-    Proto     => $SOCKET_TYPE,
-    LocalPort => $PORT,
-    Port      => $PORT,
-) or die "Could not open socket on port $PORT: $!\n";
-print $in "AT*CTRL=0," . UAV::Pilot::ARDrone::Driver->ARDRONE_CTRL_GET_CONFIG . ",0\r";
 
-while( <$in> ) {
-    print;
-}
-
-$in->close;
+$dump->process_h264_frame([ 0x12, 0x34, 0x56, 0x78 ]);
+close $OUTPUT_FH;
+cmp_ok( (-s $OUTPUT_FILE), '==', 4, "Wrote to output file" );
+cmp_ok( $dump->_frame_count, '==', 1, "Frame count incremented" );

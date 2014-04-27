@@ -26,7 +26,6 @@
             "UAV::Pilot::Video::Ffmpeg" : "0"
          },
          "requires" : {
-            "Alien::ffmpeg" : "0",
             "AnyEvent" : "0",
             "AnyEvent::ReadLine::Gnu" : "0",
             "DateTime" : "0",
@@ -46,12 +45,17 @@
             "namespace::autoclean" : "0",
             "perl" : ">= 5.14.0"
          }
+      },
+      "test" : {
+         "requires" : {
+            "Test::Pod" : "0"
+         }
       }
    },
    "provides" : {
       "UAV::Pilot" : {
          "file" : "lib/UAV/Pilot.pm",
-         "version" : "0.9"
+         "version" : "0.10"
       },
       "UAV::Pilot::ArdupilotPacketException::BadChecksum" : {
          "file" : "lib/UAV/Pilot/Exceptions.pm"
@@ -132,11 +136,11 @@
    "release_status" : "stable",
    "resources" : {
       "license" : [
-         "http://opensource.org/licenses/bsd-license.php"
+         "http://opensource.org/licenses/BSD-3-Clause"
       ],
       "repository" : {
          "url" : "https://github.com/frezik/UAV-Pilot"
       }
    },
-   "version" : "0.9"
+   "version" : "0.10"
 }
