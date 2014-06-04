@@ -19,7 +19,6 @@ bin/uav_video_display
 bin/uav_video_dump
 bin/wumpusrover_client_example
 dist.ini
-install.sh
 lib/UAV/Pilot.pm
 lib/UAV/Pilot/Commands.pm
 lib/UAV/Pilot/Control.pm
@@ -31,6 +30,8 @@ lib/UAV/Pilot/EventHandler.pm
 lib/UAV/Pilot/Events.pm
 lib/UAV/Pilot/Exceptions.pm
 lib/UAV/Pilot/Logger.pm
+lib/UAV/Pilot/Mock/Commands.pm
+lib/UAV/Pilot/MockInit/Commands.pm
 lib/UAV/Pilot/NavCollector.pm
 lib/UAV/Pilot/NavCollector/AckEvents.pm
 lib/UAV/Pilot/Server.pm
@@ -53,18 +54,11 @@ scripts/video_dump.pl
 scripts/wumpus_video_display.pl
 scripts/wumpus_video_gstreamer.pl
 scripts/wumpus_video_to_h264.pl
-share/ARDrone.uav
-share/Mock.uav
-share/MockInit.uav
-share/WumpusRover.uav
-share/typeone.ttf
 t/001_load.t
 t/002_pod.t
 t/010_video_file_dump.t
 t/130_easy_event.t
 t/140_events.t
 t/200_commands.t
-test.sh
-test_file.sh
 typemap
 uav.h

@@ -7,18 +7,13 @@ use warnings;
 
 use ExtUtils::MakeMaker 6.30;
 
-use File::ShareDir::Install;
-$File::ShareDir::Install::INCLUDE_DOTFILES = 1;
-$File::ShareDir::Install::INCLUDE_DOTDIRS = 1;
-install_share dist => "share";
 
 
 my %WriteMakefileArgs = (
   "ABSTRACT" => "Base library for controlling UAVs",
   "AUTHOR" => "Timm Murray <tmurray\@wumpus-cave.net>",
   "CONFIGURE_REQUIRES" => {
-    "ExtUtils::MakeMaker" => "6.30",
-    "File::ShareDir::Install" => "0.06"
+    "ExtUtils::MakeMaker" => "6.30"
   },
   "DISTNAME" => "UAV-Pilot",
   "EXE_FILES" => [],
@@ -46,7 +41,7 @@ my %WriteMakefileArgs = (
   "TEST_REQUIRES" => {
     "Test::Pod" => 0
   },
-  "VERSION" => "0.11",
+  "VERSION" => "1.0_0",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -86,10 +81,5 @@ delete $WriteMakefileArgs{CONFIGURE_REQUIRES}
 
 WriteMakefile(%WriteMakefileArgs);
 
-{
-package
-MY;
-use File::ShareDir::Install qw(postamble);
-}
 
 
